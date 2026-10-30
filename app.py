@@ -12,7 +12,7 @@ from urllib.parse import urlencode, urlparse
 
 import requests
 from flask import Flask, jsonify, redirect, request, send_file
-from connect_youtube import connect as connect_youtube_account
+from connect_youtube import available_browsers, connect as connect_youtube_account, import_from_browser
 from matching import rank
 from reverse import (FORWARD, REVERSE, candidate_id, youtube_playlist_id, youtube_tracks,
                      search_spotify, create_spotify)
@@ -331,6 +331,21 @@ def youtube_connect():
     if not isinstance(text, str):
         raise ValueError('內容不是請求標頭，請重新複製。')
     name = connect_youtube_account(text, LOCAL)
+    return jsonify(ok=True, account=name)
+
+
+@app.get('/api/youtube/browsers')
+def youtube_browsers():
+    return jsonify(browsers=available_browsers())
+
+
+@app.post('/api/youtube/import')
+def youtube_import():
+    """Read the YouTube login straight from a local browser profile; nothing leaves this machine."""
+    browser = (request.json or {}).get('browser')
+    if not isinstance(browser, str):
+        raise ValueError('不支援的瀏覽器。')
+    name = import_from_browser(browser, LOCAL)
     return jsonify(ok=True, account=name)
 
 

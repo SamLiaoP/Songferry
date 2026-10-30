@@ -41,3 +41,7 @@ textarea:focus{outline:2px solid #7d9840;outline-offset:2px}
 .connect-panel .button-row{margin-top:12px;align-items:center}
 .connect-panel .hint{margin:0}
 .connect-panel .account-message{margin:10px 0 0}
+
+.connect-lead{font-size:12px;line-height:1.8;color:#5d675e;margin:8px 0 10px}
+.connect-or{font-size:12px;font-weight:600;margin:18px 0 0;padding-top:14px;border-top:1px solid var(--line)}
+#yt-import-buttons .secondary{padding:11px 16px}

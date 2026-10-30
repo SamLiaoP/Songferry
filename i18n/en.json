@@ -185,7 +185,12 @@
     "Cookie 裡沒有登入資訊。請先在該瀏覽器登入 YouTube Music，再重新複製。": "The cookie has no login. Sign in to YouTube Music in that browser, then copy again.",
     "無法確認登入帳號，請重新複製已登入的請求。": "Could not confirm the account. Copy a signed-in request again.",
     "登入驗證失敗。請確認網路正常、已登入 YouTube Music，並重新複製最新的請求。": "Login verification failed. Check your network, make sure you are signed in to YouTube Music, and copy a fresh request.",
-    "無法儲存登入設定，請確認執行環境與資料夾權限。": "Could not save the login. Check the environment and folder permissions."
+    "無法儲存登入設定，請確認執行環境與資料夾權限。": "Could not save the login. Check the environment and folder permissions.",
+    "最簡單的方式：直接從已登入 YouTube Music 的瀏覽器匯入。只在你的電腦上讀取，macOS 可能會詢問是否允許存取鑰匙圈，請按「允許」。": "Easiest: import straight from a browser that is signed in to YouTube Music. It is read only on this computer; macOS may ask for keychain access, click \"Allow\".",
+    "或者手動貼上一次請求：": "Or paste one request manually:",
+    "從 {browser} 匯入登入": "Import login from {browser}",
+    "正在讀取 {browser} 的登入資料…如果跳出鑰匙圈視窗，請按「允許」。": "Reading the {browser} login… if a keychain dialog appears, click \"Allow\".",
+    "不支援的瀏覽器。": "Unsupported browser."
   },
   "patterns": [
     [
@@ -203,6 +208,14 @@
     [
       "^YouTube Music 標示 (\\d+) 首，但只讀到 (\\d+) 首。請改用一般歌單或稍後重試，以免轉移不完整。$",
       "YouTube Music reports $1 songs but only $2 could be read. Use a regular playlist or retry later to avoid an incomplete transfer."
+    ],
+    [
+      "^無法讀取 (.+) 的 Cookie。請確認已允許鑰匙圈存取、瀏覽器已安裝且登入過 YouTube Music；或改用下方貼上的方式。$",
+      "Could not read the $1 cookies. Make sure keychain access was allowed, the browser is installed and has signed in to YouTube Music, or paste a request below instead."
+    ],
+    [
+      "^(.+) 裡沒有 YouTube 的 Cookie。請先在該瀏覽器登入 YouTube Music。$",
+      "$1 has no YouTube cookies. Sign in to YouTube Music in that browser first."
     ]
   ]
 }

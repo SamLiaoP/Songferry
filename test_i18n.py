@@ -23,7 +23,7 @@ class TranslationTests(unittest.TestCase):
 
     def test_server_messages_are_translated(self):
         skip = {'由 Songferry 從 Spotify 轉移。', '由 Songferry 從 YouTube Music 轉移。', '不支援的語言。'}
-        skip |= {'YouTube Music 已驗證並連接成功（帳號：', '）！回到本機工具重新整理，就能開始轉移歌單。', '登入資訊只保存在本機 .local/browser.json，請勿分享此檔案。', '正在驗證 YouTube Music 登入，請稍候…', '複製內容太長，請只複製單一 browse 請求。'}
+        skip |= {'YouTube Music 已驗證並連接成功（帳號：', '）！回到本機工具重新整理，就能開始轉移歌單。', '登入資訊只保存在本機 .local/browser.json，請勿分享此檔案。', '正在驗證 YouTube Music 登入，請稍候…', '複製內容太長，請只複製單一 browse 請求。', '無法讀取 ', ' 的 Cookie。請確認已允許鑰匙圈存取、瀏覽器已安裝且登入過 YouTube Music；或改用下方貼上的方式。', ' 裡沒有 YouTube 的 Cookie。請先在該瀏覽器登入 YouTube Music。'}
         for name in ('app.py', 'reverse.py', 'matching.py', 'connect_youtube.py'):
             source = (ROOT / name).read_text(encoding='utf-8')
             for literal in self.chinese_literals(source):
@@ -34,7 +34,9 @@ class TranslationTests(unittest.TestCase):
                 self.assertTrue(self.covered(literal), f'{name}: no English for {literal!r}')
         for text in ['Spotify 請求過多，請稍後重試（Retry-After: 12 秒）。', 'Spotify 讀取失敗（HTTP 500）。',
                      '建立結果未確認。請先到 YouTube Music 查看是否已有歌單；此工作不會自動重試，以免重複建立。',
-                     'YouTube Music 標示 30 首，但只讀到 29 首。請改用一般歌單或稍後重試，以免轉移不完整。']:
+                     'YouTube Music 標示 30 首，但只讀到 29 首。請改用一般歌單或稍後重試，以免轉移不完整。',
+                     '無法讀取 Brave 的 Cookie。請確認已允許鑰匙圈存取、瀏覽器已安裝且登入過 YouTube Music；或改用下方貼上的方式。',
+                     'Brave 裡沒有 YouTube 的 Cookie。請先在該瀏覽器登入 YouTube Music。']:
             self.assertTrue(self.covered(text), text)
 
     def test_ui_strings_are_translated(self):

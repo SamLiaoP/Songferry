@@ -55,7 +55,11 @@ The Spotify token is saved to `.local/spotify_token.json` (mode 0600) and refres
 
 Songferry uses the open-source, unofficial [ytmusicapi](https://github.com/sigma67/ytmusicapi) library, which searches the YouTube Music catalogue directly. If Google changes the service this integration can break.
 
-No Google API key is needed. Click **Connect YouTube Music** on the YouTube Music card and follow the three steps in the panel:
+No Google API key is needed. Click **Connect YouTube Music** on the YouTube Music card. The panel offers two ways:
+
+**Import from your browser (easiest).** Songferry detects Brave, Chrome, Edge, Chromium and Firefox profiles on this computer. Click *Import login from Brave* (or whichever browser is signed in to YouTube Music) and it reads the YouTube cookies straight from that browser's cookie store, the same way `yt-dlp --cookies-from-browser` does. On macOS the system asks once whether to allow access to the browser's keychain entry; click **Allow**. Nothing leaves your machine. On Windows, Chrome 127 and later encrypt cookies in a way this cannot read; use Firefox or the manual method there.
+
+**Or paste one request manually:**
 
 1. Open https://music.youtube.com in Chrome or Brave and sign in. Press ⌘⌥I (F12 on Windows) to open DevTools and switch to the **Network** tab.
 2. Reload the page, right-click any `music.youtube.com` request in the list → Copy → **Copy as cURL**. *Copy as fetch (Node.js)* and Firefox's *Copy Request Headers* also work; plain *Copy as fetch* does not include the cookie.

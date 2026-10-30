@@ -57,6 +57,8 @@ Windows 可使用 `.venv\Scripts\python.exe` 取代 `.venv/bin/python`。`.comma
 | `POST /api/config` | 儲存 `client_id`，並清除已保存的 Spotify 登入 |
 | `POST /api/logout` | 登出 Spotify，刪除 `.local/spotify_token.json` |
 | `POST /api/youtube/connect` | 接收 `text`（瀏覽器複製的 cURL、fetch 或標頭），本機解析、驗證並存成 `browser.json`，回傳帳號名稱 |
+| `GET /api/youtube/browsers` | 偵測本機有哪些瀏覽器設定檔可匯入（只看路徑，不讀檔） |
+| `POST /api/youtube/import` | 接收 `browser`，用 browser_cookie3 讀取該瀏覽器的 YouTube Cookie，驗證並存檔；macOS 會觸發鑰匙圈授權 |
 | `POST /api/youtube/disconnect` | 刪除 `browser.json` 與 `youtube_account.json` |
 | `POST /api/login` | 接收 `direction`，回傳 Spotify PKCE 授權網址 |
 | `GET /callback` | 接收並驗證 Spotify OAuth state、交換 token |
@@ -80,7 +82,7 @@ Windows 可使用 `.venv\Scripts\python.exe` 取代 `.venv/bin/python`。`.comma
 
 - `.local/config.json`：使用者的 Spotify Client ID。
 - `.local/browser.json`：含 YouTube Music 登入資訊，建立時限制為 `0600`，目錄為 `0700`。`youtube_account.json` 只存驗證時取得的帳號名稱，供介面顯示。
-- 貼上的請求由 `connect_youtube.parse_headers` 解析：支援 Copy as cURL（`-H`/`-b`，含 `\\` 續行）、Copy as fetch (Node.js) 的 JSON、原始標頭行。只保留登入相關標頭，Cookie 需含 `SAPISID` 或 `__Secure-3PAPISID`，`x-goog-authuser` 缺少時預設 `0`。
+- 貼上的請求由 `connect_youtube.parse_headers` 解析：支援 Copy as cURL（`-H`/`-b`，含 `\\` 續行）、Copy as fetch (Node.js) 的 JSON、原始標頭行。只保留登入相關標頭，Cookie 需含 `__Secure-3PAPISID`（ytmusicapi 用它計算 SAPISIDHASH），`x-goog-authuser` 缺少時預設 `0`。存檔前 `complete_headers` 會補上 ytmusicapi 的標準標頭與 `authorization: SAPISIDHASH …`；ytmusicapi 1.12 只有看到這個標頭才會把設定當成瀏覽器登入，否則會當成 OAuth 而失敗。
 - `.local/spotify_token.json`：Spotify access/refresh token，`0600`。登入、更新 token 時寫入；登出、更換 Client ID 或 refresh 失敗時刪除。
 - `.local/jobs/<id>.json`：每個比對工作的完整內容（來源歌曲、候選、使用者選擇、建立結果）。所有寫入都用暫存檔加 `os.replace` 原子取代。啟動時 `restore()` 讀回；狀態仍為 `matching` 的工作標記為 `error`（中斷），`creating` 為真的工作保持 `attempted`，不會重送建立。
 - OAuth 待完成狀態：僅存在伺服器記憶體。

@@ -41,7 +41,7 @@ async function setLanguage(next) {
   try { localStorage.setItem('songferry.lang', lang); } catch (_) {}
   applyLanguage();
   configureDirection();
-  if (token) { spotifyStatus(); youtubeStatus(); }
+  if (token) { spotifyStatus(); youtubeStatus(); for(const b of $('yt-import-buttons').children)b.textContent=t('從 {browser} 匯入登入',{browser:b.dataset.name}); }
   if (job) { renderRows(); renderProgress(); if (job.result) showResult(job.result); if (job.title) $('playlist-title').textContent = job.title; }
   if (lastNotice && !$('notice').hidden) notice(lastNotice.text, lastNotice.error, lastNotice.params);
   if (token) loadHistory();
@@ -279,7 +279,28 @@ $('logout').onclick=async()=>{
   catch(error){spotifyMessage(error.message,true);}
   finally{$('logout').disabled=false;}
 };
-$('yt-connect-button').onclick=()=>{$('yt-connect').hidden=false;$('yt-panel-message').hidden=true;$('yt-connect').scrollIntoView({behavior:'smooth',block:'center'});$('yt-headers').focus({preventScroll:true});};
+let browsersLoaded=false;
+async function loadBrowsers(){
+  if(browsersLoaded)return;
+  let data;
+  try{data=await api('youtube/browsers');}catch(_){return;}
+  browsersLoaded=true;
+  const box=$('yt-import-buttons');box.replaceChildren();
+  for(const browser of data.browsers){
+    const button=node('button',t('從 {browser} 匯入登入',{browser:browser.name}),'secondary');button.type='button';button.dataset.browser=browser.id;button.dataset.name=browser.name;
+    button.onclick=()=>importFromBrowser(browser.id,browser.name);
+    box.append(button);
+  }
+  $('yt-import').hidden=!data.browsers.length;
+}
+async function importFromBrowser(id,name){
+  for(const b of $('yt-import-buttons').children)b.disabled=true;
+  youtubeMessage('yt-import-message','正在讀取 {browser} 的登入資料…如果跳出鑰匙圈視窗，請按「允許」。',false,{browser:name});
+  try{const data=await api('youtube/import',{browser:id});youtubeConnected=true;youtubeAccount=data.account||'';youtubeStatus();$('yt-connect').hidden=true;$('yt-import-message').hidden=true;youtubeMessage('yt-message','已連接 YouTube Music：{account}。登入已保存在本機。',false,{account:youtubeAccount});}
+  catch(error){youtubeMessage('yt-import-message',error.message,true);}
+  finally{for(const b of $('yt-import-buttons').children)b.disabled=false;}
+}
+$('yt-connect-button').onclick=()=>{$('yt-connect').hidden=false;$('yt-panel-message').hidden=true;$('yt-import-message').hidden=true;loadBrowsers();$('yt-connect').scrollIntoView({behavior:'smooth',block:'center'});};
 $('yt-cancel').onclick=()=>{$('yt-connect').hidden=true;$('yt-headers').value='';};
 $('yt-save').onclick=async()=>{
   const text=$('yt-headers').value;

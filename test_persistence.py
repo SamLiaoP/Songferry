@@ -107,6 +107,16 @@ class PersistenceTests(unittest.TestCase):
         status = self.client.get('/api/status', base_url=module.BASE).json
         self.assertFalse(status['youtube']); self.assertEqual(status['youtube_account'], '')
 
+    def test_browser_import_route_lists_browsers_and_imports(self):
+        with patch.object(module, 'available_browsers', return_value=[{'id':'brave','name':'Brave'}]):
+            self.assertEqual(self.client.get('/api/youtube/browsers', base_url=module.BASE).json, {'browsers':[{'id':'brave','name':'Brave'}]})
+        with patch.object(module, 'import_from_browser', return_value='Sam') as imp:
+            response = self.post('youtube/import', {'browser': 'brave'})
+        self.assertEqual(response.status_code, 200); self.assertEqual(response.json['account'], 'Sam')
+        imp.assert_called_once_with('brave', self.local)
+        self.assertEqual(self.post('youtube/import', {'browser': ['brave']}).status_code, 400)
+        self.assertEqual(self.post('youtube/import', {'browser': 'safari'}).status_code, 400, 'unknown browsers are rejected before any file is read')
+
     def test_pasted_login_failure_returns_the_setup_message_without_details(self):
         from connect_youtube import SetupError
         with patch.object(module, 'connect_youtube_account', side_effect=SetupError('登入驗證失敗。請確認網路正常、已登入 YouTube Music，並重新複製最新的請求。')):

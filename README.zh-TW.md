@@ -55,7 +55,11 @@ Spotify token 保存在 `.local/spotify_token.json`（權限 0600），過期時
 
 Songferry 使用非 Google 官方的開源 [ytmusicapi](https://github.com/sigma67/ytmusicapi)，直接搜尋 YouTube Music 的歌曲目錄。Google 變更服務時，這個整合可能失效。
 
-不需要 Google API 金鑰。按 YouTube Music 卡片的「**連接 YouTube Music**」，照面板裡的三個步驟：
+不需要 Google API 金鑰。按 YouTube Music 卡片的「**連接 YouTube Music**」，面板提供兩種方式：
+
+**從瀏覽器匯入（最簡單）。** Songferry 會偵測這台電腦上的 Brave、Chrome、Edge、Chromium 與 Firefox 設定檔。按「從 Brave 匯入登入」（或任何已登入 YouTube Music 的瀏覽器），它會直接從該瀏覽器的 Cookie 資料庫讀取 YouTube 的 Cookie，做法和 `yt-dlp --cookies-from-browser` 相同。macOS 會問一次是否允許存取該瀏覽器的鑰匙圈項目，按「**允許**」即可。整個過程不會把任何資料送出你的電腦。Windows 上 Chrome 127 以後的 Cookie 加密方式無法這樣讀取，請改用 Firefox 或手動方式。
+
+**或者手動貼上一次請求：**
 
 1. 用 Chrome 或 Brave 開啟 https://music.youtube.com 並登入。按 ⌘⌥I（Windows 按 F12）打開開發者工具，切到 **Network** 分頁。
 2. 重新整理頁面，在清單裡右鍵點任何一個 `music.youtube.com` 的請求 → Copy → **Copy as cURL**。「Copy as fetch (Node.js)」和 Firefox 的「Copy Request Headers」也可以；一般的「Copy as fetch」不含 Cookie。
