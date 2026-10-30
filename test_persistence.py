@@ -46,7 +46,7 @@ class PersistenceTests(unittest.TestCase):
         module.state['oauth'] = {'state': 'correct', 'time': module.time.time(), 'verifier': 'verifier'}
         fake = Mock(ok=True)
         fake.json.return_value = {'access_token': 'test-token', 'refresh_token': 'test-refresh', 'expires_in': 3600, 'scope': 'playlist-read-private'}
-        with patch.object(module, 'config', return_value={'client_id': 'a' * 32}), patch.object(module.requests, 'post', return_value=fake):
+        with patch.object(module, 'config', return_value={'client_id': 'a' * 32}), patch.object(module.requests, 'post', return_value=fake), patch.object(module.requests, 'get', return_value=Mock(ok=True, status_code=200, **{'json.return_value': {'display_name': 'Sam', 'id': 'sam'}})):
             self.client.get('/callback?state=correct&code=code', base_url=module.BASE)
         token_file = self.local / 'spotify_token.json'
         self.assertTrue(token_file.exists())
@@ -55,7 +55,9 @@ class PersistenceTests(unittest.TestCase):
         module.state['token'] = None  # simulate restart
         module.restore()
         self.assertEqual(module.state['token']['access_token'], 'test-token')
-        self.assertTrue(self.client.get('/api/status', base_url=module.BASE).json['spotify'])
+        status = self.client.get('/api/status', base_url=module.BASE).json
+        self.assertTrue(status['spotify']); self.assertEqual(status['spotify_account'], 'Sam')
+        self.assertEqual(self.mode(self.local / 'spotify_account.json'), 0o600)
 
     def test_refresh_updates_saved_login_and_failed_refresh_forgets_it(self):
         module.state['token'] = {'access_token': 'old', 'refresh_token': 'r', 'expires_at': 0, 'scope': 's'}
@@ -72,13 +74,25 @@ class PersistenceTests(unittest.TestCase):
         self.assertIsNone(module.state['token'])
         self.assertFalse((self.local / 'spotify_token.json').exists())
 
+    def test_account_name_can_be_filled_in_for_an_older_login(self):
+        module.state['token'] = {'access_token': 't', 'refresh_token': 'r', 'expires_at': 9e9}
+        me = Mock(ok=True, status_code=200); me.json.return_value = {'display_name': 'Sam', 'id': 'sam'}
+        with patch.object(module.requests, 'get', return_value=me):
+            self.assertEqual(self.post('spotify/account', {}).json['account'], 'Sam')
+        self.assertEqual(self.client.get('/api/status', base_url=module.BASE).json['spotify_account'], 'Sam')
+        module.state['token'] = None
+        self.assertEqual(self.post('spotify/account', {}).json['account'], '')
+
     def test_logout_and_new_client_id_delete_saved_login(self):
         for action in (lambda: self.post('logout', {}), lambda: self.post('config', {'client_id': 'b' * 32})):
             module.state['token'] = {'access_token': 't', 'refresh_token': 'r', 'expires_at': 9e9}
             module.save_token(module.state['token'])
+            module.write_private(self.local / 'spotify_account.json', {'accountName': 'Sam'})
             self.assertEqual(action().status_code, 200)
             self.assertIsNone(module.state['token'])
             self.assertFalse((self.local / 'spotify_token.json').exists())
+            self.assertFalse((self.local / 'spotify_account.json').exists())
+            self.assertEqual(self.client.get('/api/status', base_url=module.BASE).json['spotify_account'], '')
 
     def test_corrupt_or_partial_token_file_is_ignored(self):
         self.local.mkdir(mode=0o700)

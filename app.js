@@ -1,7 +1,7 @@
 const $ = id => document.getElementById(id);
 let token, jobId, job, selected = [], polling, creating = false, syncTimer;
 let savedClientId = '', spotifyConnected = false, spotifyCanWrite = false, spotifyCanModify = false, loginBusy = false;
-let youtubeConnected = false, youtubeAccount = '';
+let youtubeConnected = false, youtubeAccount = '', spotifyAccount = '';
 
 // --- Language ---------------------------------------------------------------
 // Traditional Chinese strings are the source; i18n/en.json maps them to English.
@@ -107,7 +107,7 @@ window.addEventListener('popstate',()=>{const route=routeFromPath();if(route)sho
 function renderAccountStrips(){
   for(const strip of document.querySelectorAll('[data-strip]')){
     strip.replaceChildren();
-    const sp=node('span');sp.append(node('b','Spotify '),node('span',t(spotifyConnected?'已連接':'尚未連接'),spotifyConnected?'ok':'warn'));
+    const sp=node('span');sp.append(node('b','Spotify '),node('span',spotifyConnected?(spotifyAccount?t('已連接 · {account}',{account:spotifyAccount}):t('已連接')):t('尚未連接'),spotifyConnected?'ok':'warn'));
     const yt=node('span');yt.append(node('b','YouTube Music '),node('span',youtubeConnected?(youtubeAccount?t('已連接 · {account}',{account:youtubeAccount}):t('已連接')):t('尚未設定'),youtubeConnected?'ok':'warn'));
     const link=node('a',t('管理帳號 →'));link.href='/accounts';link.dataset.route='accounts';
     strip.append(sp,yt,link);
@@ -305,7 +305,7 @@ function showSpotifySetup(message, error=false) {
   $('spotify-config-form').scrollIntoView({block:'center',behavior:'instant'});
 }
 function spotifyStatus(){
-  $('sp-status').textContent=t(spotifyConnected?'已連接':savedClientId?'已設定 · 尚未連接':'待完成首次設定');
+  $('sp-status').textContent=spotifyConnected?(spotifyAccount?t('已連接 · {account}',{account:spotifyAccount}):t('已連接')):t(savedClientId?'已設定 · 尚未連接':'待完成首次設定');
   $('sp-status').className='status'+(spotifyConnected?' connected':'');
   renderAccountStrips();
 }
@@ -325,7 +325,7 @@ async function connectSpotify(event, direction) {
   loginBusy=true;updateLoginButtons();
   try {
     if(id!==savedClientId) {
-      await api('config',{client_id:id});savedClientId=id;spotifyConnected=false;spotifyStatus();
+      await api('config',{client_id:id});savedClientId=id;spotifyConnected=false;spotifyAccount='';spotifyStatus();
     }
     const wantWrite=direction==='youtube-to-spotify'||reverseDirection();
     const data=await api('login',{direction:wantWrite?'youtube-to-spotify':'spotify-to-youtube'});
@@ -341,7 +341,7 @@ $('spotify-config-form').onsubmit=connectSpotify;
 $('login').onclick=connectSpotify;
 $('logout').onclick=async()=>{
   $('logout').disabled=true;
-  try{await api('logout',{});spotifyConnected=false;spotifyCanWrite=false;spotifyCanModify=false;spotifyStatus();spotifyMessage('已登出 Spotify，本機保存的登入資訊已刪除。');updateLoginButtons();updateCount();}
+  try{await api('logout',{});spotifyConnected=false;spotifyAccount='';spotifyCanWrite=false;spotifyCanModify=false;spotifyStatus();spotifyMessage('已登出 Spotify，本機保存的登入資訊已刪除。');updateLoginButtons();updateCount();}
   catch(error){spotifyMessage(error.message,true);}
   finally{$('logout').disabled=false;}
 };
@@ -445,9 +445,9 @@ async function loadPlaylists(){
   const target=$('links-target').value;
   $('links-message').hidden=true;$('links-authorize').hidden=true;
   if(playlistCache[target]){renderPlaylistOptions();return;}
-  if(target==='spotify'&&!spotifyConnected){youtubeMessage('links-message','請先到帳號頁連接 Spotify。',true);renderPlaylistOptions();return;}
+  if(target==='spotify'&&!spotifyConnected){youtubeMessage('links-message','請先到「帳號連接」頁連接 Spotify。',true);renderPlaylistOptions();return;}
   if(target==='spotify'&&!spotifyCanModify){youtubeMessage('links-message','Spotify 尚未授權建立或修改歌單，請先授權（已連接過的帳號也需要重新授權一次）。',true);$('links-authorize').hidden=false;renderPlaylistOptions();return;}
-  if(target==='youtube'&&!youtubeConnected){youtubeMessage('links-message','請先到帳號頁連接 YouTube Music。',true);renderPlaylistOptions();return;}
+  if(target==='youtube'&&!youtubeConnected){youtubeMessage('links-message','請先到「帳號連接」頁連接 YouTube Music。',true);renderPlaylistOptions();return;}
   try{const data=await api('playlists/'+target);playlistCache[target]=data.playlists;}
   catch(error){youtubeMessage('links-message',error.message,true);}
   renderPlaylistOptions();
@@ -498,10 +498,11 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&historyOpen()&&isNa
   const route=routeFromPath();showView(route||(VIEWS.includes(saved)?saved:'accounts'),false);
   if(!route)history.replaceState(null,'','/'+currentView+location.search);})();
 setLanguage(initialLanguage()).then(()=>api('status')).then(data=>{
-  token=data.csrf;savedClientId=data.client_id;spotifyConnected=data.spotify;spotifyCanWrite=!!data.spotify_can_write;spotifyCanModify=!!data.spotify_can_modify;
+  token=data.csrf;savedClientId=data.client_id;spotifyConnected=data.spotify;spotifyAccount=data.spotify_account||'';spotifyCanWrite=!!data.spotify_can_write;spotifyCanModify=!!data.spotify_can_modify;
   youtubeConnected=!!data.youtube;youtubeAccount=data.youtube_account||'';
   $('client-id').value=data.client_id;
   spotifyStatus();youtubeStatus();
+  if(spotifyConnected&&!spotifyAccount)api('spotify/account',{}).then(d=>{spotifyAccount=d.account||'';spotifyStatus();}).catch(()=>{});
   if(!data.client_id)$('setup').open=true;
   $('direction').value=new URLSearchParams(location.search).get('direction')||sessionStorage.getItem('songferryDirection')||'spotify-to-youtube';
   if(!$('direction').value)$('direction').value='spotify-to-youtube';

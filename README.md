@@ -2,11 +2,11 @@
 
 **English** · [繁體中文](README.zh-TW.md)
 
-Songferry is a local tool that moves playlists between **Spotify** and **YouTube Music**, in both directions, and that turns a messy pile of song links (a whole chat log, say) into a playlist. It matches every song, lets you review and change each match, then creates or appends to a playlist and reads it back to verify. Only song metadata is transferred; no music is downloaded. The interface is available in English and Traditional Chinese and has three pages: **Accounts**, **Transfer** and **Links to playlist**.
+Songferry is a local tool that moves playlists between **Spotify** and **YouTube Music**, in both directions, and that turns a messy pile of song links (a whole chat log, say) into a playlist. It matches every song, lets you review and change each match, then creates or appends to a playlist and reads it back to verify. Only song metadata is transferred; no music is downloaded. The interface is available in English and Traditional Chinese and has three pages: **Connect accounts**, **Transfer** and **Links to playlist**.
 
 > Currently supports Spotify ⟷ YouTube Music only. Other services are not supported yet.
 
-![Songferry accounts page with the history sidebar](docs/screenshots/home-en.jpg)
+![Songferry Connect accounts page with the history sidebar](docs/screenshots/home-en.jpg)
 
 ## Why another playlist tool?
 

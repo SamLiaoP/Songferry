@@ -161,7 +161,8 @@ class SpotifyLoginTests(unittest.TestCase):
         module.state['oauth'] = {'state':'correct', 'time':module.time.time(), 'verifier':'verifier'}
         fake = Mock(ok=True)
         fake.json.return_value = {'access_token':'test-token', 'refresh_token':'test-refresh', 'expires_in':3600}
-        with patch.object(module, 'config', return_value={'client_id':'a'*32}), patch.object(module.requests, 'post', return_value=fake) as exchange:
+        with patch.object(module, 'config', return_value={'client_id':'a'*32}), patch.object(module.requests, 'post', return_value=fake) as exchange, \
+                patch.object(module.requests, 'get', return_value=Mock(ok=True, status_code=200, **{'json.return_value': {'display_name': 'Sam', 'id': 'sam'}})):
             response = self.client.get('/callback?state=correct&code=code', base_url=module.BASE)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.location, '/accounts')

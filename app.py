@@ -66,6 +66,26 @@ def save_token(token):
         write_private(path, token)
     else:
         path.unlink(missing_ok=True)
+        (LOCAL / 'spotify_account.json').unlink(missing_ok=True)
+
+
+def save_spotify_account():
+    """Remember the signed-in Spotify display name so the card can show it, like the YouTube Music one."""
+    try:
+        me = spotify('me')
+        name = (me.get('display_name') or me.get('id') or '').strip()
+    except Exception:
+        name = ''
+    if name:
+        write_private(LOCAL / 'spotify_account.json', {'accountName': name})
+    else:
+        (LOCAL / 'spotify_account.json').unlink(missing_ok=True)
+
+
+def spotify_account():
+    if not state['token']:
+        return ''
+    return (read_json(LOCAL / 'spotify_account.json') or {}).get('accountName', '')
 
 
 def jobs_dir():
@@ -322,6 +342,7 @@ def status():
     return jsonify(csrf=csrf, spotify=bool(state['token']), client_id=config().get('client_id', ''),
                    youtube=(LOCAL / 'browser.json').exists(), redirect=REDIRECT,
                    youtube_account=(read_json(LOCAL / 'youtube_account.json') or {}).get('accountName', ''),
+                   spotify_account=spotify_account(),
                    spotify_can_write=spotify_can_write(), spotify_can_modify=spotify_can_modify_playlists())
 
 
@@ -366,6 +387,14 @@ def youtube_disconnect():
     for name in ('browser.json', 'youtube_account.json'):
         (LOCAL / name).unlink(missing_ok=True)
     return jsonify(ok=True)
+
+
+@app.post('/api/spotify/account')
+def refresh_spotify_account():
+    """Fill in the display name for a login saved before names were recorded."""
+    if state['token']:
+        save_spotify_account()
+    return jsonify(account=spotify_account())
 
 
 @app.post('/api/logout')
@@ -415,6 +444,7 @@ def callback():
     token['expires_at'] = time.time() + token['expires_in']
     state['token'] = token
     save_token(token)
+    save_spotify_account()
     if pending.get('direction') == REVERSE:
         return redirect('/transfer?direction=' + REVERSE)
     return redirect('/accounts')
