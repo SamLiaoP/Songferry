@@ -55,16 +55,15 @@ The Spotify token is saved to `.local/spotify_token.json` (mode 0600) and refres
 
 Songferry uses the open-source, unofficial [ytmusicapi](https://github.com/sigma67/ytmusicapi) library, which searches the YouTube Music catalogue directly. If Google changes the service this integration can break.
 
-Recommended (no file editing):
+No Google API key is needed. Click **Connect YouTube Music** on the YouTube Music card and follow the three steps in the panel:
 
-1. Open https://music.youtube.com in Chrome or Brave and sign in.
-2. Press ⌘⌥I (Ctrl+Shift+I), open the **Network** tab and filter for `browse`.
-3. Click **Library** in YouTube Music to trigger a browse request.
-4. Right-click that request → Copy → **Copy as fetch (Node.js)**. Plain *Copy as fetch* may omit the cookie.
-5. Double-click `連接YouTubeMusic.command` in the project folder. It parses the clipboard locally (the copied code is never executed), verifies the login with a read-only account query, saves it to `.local/browser.json`, then clears the clipboard.
-6. Reload Songferry. The server does not need to restart.
+1. Open https://music.youtube.com in Chrome or Brave and sign in. Press ⌘⌥I (F12 on Windows) to open DevTools and switch to the **Network** tab.
+2. Reload the page, right-click any `music.youtube.com` request in the list → Copy → **Copy as cURL**. *Copy as fetch (Node.js)* and Firefox's *Copy Request Headers* also work; plain *Copy as fetch* does not include the cookie.
+3. Paste it into the panel and click **Verify and save**. Songferry parses it locally (the copied command is never executed), keeps only the login headers, verifies them with a read-only account query, and saves them to `.local/browser.json`. The card then shows the connected account name. *Sign out of YouTube Music* deletes the saved login.
 
-The copied text contains your login cookies. Give it only to the local helper; never paste it into a chat. On other systems, or in Firefox, use the ytmusicapi CLI instead:
+![Connect YouTube Music panel](docs/screenshots/connect-youtube-en.jpg)
+
+The copied text contains your login cookies. Paste it only into Songferry on this computer; never into a chat or an issue. Two alternatives exist for scripts or other systems: double-click `連接YouTubeMusic.command` on macOS to import the clipboard (it clears the clipboard afterwards), or use the ytmusicapi CLI:
 
 ```sh
 mkdir -p .local && chmod 700 .local

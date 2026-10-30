@@ -12,6 +12,7 @@ from urllib.parse import urlencode, urlparse
 
 import requests
 from flask import Flask, jsonify, redirect, request, send_file
+from connect_youtube import connect as connect_youtube_account
 from matching import rank
 from reverse import (FORWARD, REVERSE, candidate_id, youtube_playlist_id, youtube_tracks,
                      search_spotify, create_spotify)
@@ -308,6 +309,7 @@ def favicon():
 def status():
     return jsonify(csrf=csrf, spotify=bool(state['token']), client_id=config().get('client_id', ''),
                    youtube=(LOCAL / 'browser.json').exists(), redirect=REDIRECT,
+                   youtube_account=(read_json(LOCAL / 'youtube_account.json') or {}).get('accountName', ''),
                    spotify_can_write=spotify_can_write())
 
 
@@ -319,6 +321,23 @@ def save_config():
     write_private(LOCAL / 'config.json', {'client_id': client_id})
     state['token'] = None
     save_token(None)
+    return jsonify(ok=True)
+
+
+@app.post('/api/youtube/connect')
+def youtube_connect():
+    """Verify pasted request headers against YouTube Music and keep them under .local."""
+    text = (request.json or {}).get('text', '')
+    if not isinstance(text, str):
+        raise ValueError('內容不是請求標頭，請重新複製。')
+    name = connect_youtube_account(text, LOCAL)
+    return jsonify(ok=True, account=name)
+
+
+@app.post('/api/youtube/disconnect')
+def youtube_disconnect():
+    for name in ('browser.json', 'youtube_account.json'):
+        (LOCAL / name).unlink(missing_ok=True)
     return jsonify(ok=True)
 
 

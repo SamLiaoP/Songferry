@@ -55,16 +55,15 @@ Spotify token 保存在 `.local/spotify_token.json`（權限 0600），過期時
 
 Songferry 使用非 Google 官方的開源 [ytmusicapi](https://github.com/sigma67/ytmusicapi)，直接搜尋 YouTube Music 的歌曲目錄。Google 變更服務時，這個整合可能失效。
 
-建議用免編輯檔案的方式：
+不需要 Google API 金鑰。按 YouTube Music 卡片的「**連接 YouTube Music**」，照面板裡的三個步驟：
 
-1. 用 Chrome 或 Brave 開啟 https://music.youtube.com 並登入。
-2. 按 ⌘⌥I（Ctrl+Shift+I），切到 **Network**，篩選 `browse`。
-3. 點 YouTube Music 的「音樂庫」，產生 browse 請求。
-4. 右鍵該請求 → Copy → **Copy as fetch (Node.js)**。一般的 Copy as fetch 可能不含 Cookie。
-5. 在專案資料夾雙擊 `連接YouTubeMusic.command`。它在本機解析剪貼簿（不會執行複製的程式碼），用唯讀的帳號查詢驗證登入，成功後存到 `.local/browser.json`，然後清空剪貼簿。
-6. 重新整理 Songferry，不用重啟伺服器。
+1. 用 Chrome 或 Brave 開啟 https://music.youtube.com 並登入。按 ⌘⌥I（Windows 按 F12）打開開發者工具，切到 **Network** 分頁。
+2. 重新整理頁面，在清單裡右鍵點任何一個 `music.youtube.com` 的請求 → Copy → **Copy as cURL**。「Copy as fetch (Node.js)」和 Firefox 的「Copy Request Headers」也可以；一般的「Copy as fetch」不含 Cookie。
+3. 貼到面板的欄位，按「**驗證並儲存**」。Songferry 在本機解析（不會執行複製的指令）、只保留登入相關標頭、用唯讀的帳號查詢驗證，然後存到 `.local/browser.json`。卡片會顯示已連接的帳號名稱；「登出 YouTube Music」會刪除保存的登入。
 
-複製的內容含有你的登入 Cookie，只交給本機設定程式，請勿貼到聊天。其他系統或 Firefox 可改用 ytmusicapi 的終端機指令：
+![連接 YouTube Music 面板](docs/screenshots/connect-youtube-zh.jpg)
+
+複製的內容含有你的登入 Cookie，只能貼進這台電腦上的 Songferry，請勿貼到聊天或 issue。腳本或其他系統有兩個替代方式：macOS 雙擊 `連接YouTubeMusic.command` 匯入剪貼簿（完成後會清空剪貼簿），或用 ytmusicapi 的終端機指令：
 
 ```sh
 mkdir -p .local && chmod 700 .local

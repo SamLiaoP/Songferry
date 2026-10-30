@@ -89,6 +89,31 @@ class PersistenceTests(unittest.TestCase):
         module.restore()
         self.assertIsNone(module.state['token'])
 
+    def test_youtube_login_can_be_pasted_in_the_app_and_removed_again(self):
+        with patch.object(module, 'connect_youtube_account', return_value='Sam') as connect:
+            response = self.post('youtube/connect', {'text': "curl 'https://music.youtube.com/' -H 'cookie: SAPISID=fake-test-only'"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json['account'], 'Sam')
+        connect.assert_called_once()
+        self.assertEqual(connect.call_args.args[1], self.local, 'headers are stored under the app\'s .local, not the CWD')
+        self.assertEqual(self.post('youtube/connect', {'text': 123}).status_code, 400)
+        self.assertEqual(self.client.post('/api/youtube/connect', json={'text': 'x'}, base_url=module.BASE).status_code, 403, 'CSRF token required')
+        module.write_private(self.local / 'browser.json', {'cookie': 'SAPISID=fake-test-only'})
+        module.write_private(self.local / 'youtube_account.json', {'accountName': 'Sam'})
+        status = self.client.get('/api/status', base_url=module.BASE).json
+        self.assertTrue(status['youtube']); self.assertEqual(status['youtube_account'], 'Sam')
+        self.assertEqual(self.post('youtube/disconnect', {}).status_code, 200)
+        self.assertFalse((self.local / 'browser.json').exists()); self.assertFalse((self.local / 'youtube_account.json').exists())
+        status = self.client.get('/api/status', base_url=module.BASE).json
+        self.assertFalse(status['youtube']); self.assertEqual(status['youtube_account'], '')
+
+    def test_pasted_login_failure_returns_the_setup_message_without_details(self):
+        from connect_youtube import SetupError
+        with patch.object(module, 'connect_youtube_account', side_effect=SetupError('登入驗證失敗。請確認網路正常、已登入 YouTube Music，並重新複製最新的請求。')):
+            response = self.post('youtube/connect', {'text': 'curl x'})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['error'], '登入驗證失敗。請確認網路正常、已登入 YouTube Music，並重新複製最新的請求。')
+
     # --- Matching history ---
 
     def test_new_job_is_written_during_matching_and_restored_after_restart(self):

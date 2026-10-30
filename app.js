@@ -1,6 +1,7 @@
 const $ = id => document.getElementById(id);
 let token, jobId, job, selected = [], polling, creating = false, syncTimer;
 let savedClientId = '', spotifyConnected = false, spotifyCanWrite = false, loginBusy = false;
+let youtubeConnected = false, youtubeAccount = '';
 
 // --- Language ---------------------------------------------------------------
 // Traditional Chinese strings are the source; i18n/en.json maps them to English.
@@ -40,6 +41,7 @@ async function setLanguage(next) {
   try { localStorage.setItem('songferry.lang', lang); } catch (_) {}
   applyLanguage();
   configureDirection();
+  if (token) { spotifyStatus(); youtubeStatus(); }
   if (job) { renderRows(); renderProgress(); if (job.result) showResult(job.result); if (job.title) $('playlist-title').textContent = job.title; }
   if (lastNotice && !$('notice').hidden) notice(lastNotice.text, lastNotice.error, lastNotice.params);
   if (token) loadHistory();
@@ -232,6 +234,12 @@ function showSpotifySetup(message, error=false) {
   $('client-id').focus({preventScroll:true});
   $('spotify-config-form').scrollIntoView({block:'center',behavior:'instant'});
 }
+function youtubeStatus(){
+  $('yt-status').textContent=youtubeConnected?(youtubeAccount?t('已連接 · {account}',{account:youtubeAccount}):t('已連接')):t('尚未設定');
+  $('yt-status').className='status'+(youtubeConnected?' connected':'');
+  $('yt-logout').hidden=!youtubeConnected;
+}
+function youtubeMessage(id, text, error=false, params){ $(id).hidden=false; $(id).textContent=t(text,params); $(id).className=error?'account-message error':'account-message'; }
 function spotifyStatus(){
   $('sp-status').textContent=t(spotifyConnected?'已連接':savedClientId?'已設定 · 尚未連接':'待完成首次設定');
   $('sp-status').className='status'+(spotifyConnected?' connected':'');
@@ -271,7 +279,22 @@ $('logout').onclick=async()=>{
   catch(error){spotifyMessage(error.message,true);}
   finally{$('logout').disabled=false;}
 };
-$('setup-button').onclick=()=>{$('setup').open=true;$('setup').scrollIntoView({behavior:'smooth',block:'center'});};
+$('yt-connect-button').onclick=()=>{$('yt-connect').hidden=false;$('yt-panel-message').hidden=true;$('yt-connect').scrollIntoView({behavior:'smooth',block:'center'});$('yt-headers').focus({preventScroll:true});};
+$('yt-cancel').onclick=()=>{$('yt-connect').hidden=true;$('yt-headers').value='';};
+$('yt-save').onclick=async()=>{
+  const text=$('yt-headers').value;
+  if(!text.trim()){youtubeMessage('yt-panel-message','請先貼上從瀏覽器複製的請求。',true);$('yt-headers').focus();return;}
+  $('yt-save').disabled=true;youtubeMessage('yt-panel-message','正在驗證 YouTube Music 登入…');
+  try{const data=await api('youtube/connect',{text});youtubeConnected=true;youtubeAccount=data.account||'';youtubeStatus();$('yt-headers').value='';$('yt-connect').hidden=true;youtubeMessage('yt-message','已連接 YouTube Music：{account}。登入已保存在本機。',false,{account:youtubeAccount});}
+  catch(error){youtubeMessage('yt-panel-message',error.message,true);}
+  finally{$('yt-save').disabled=false;}
+};
+$('yt-logout').onclick=async()=>{
+  $('yt-logout').disabled=true;
+  try{await api('youtube/disconnect',{});youtubeConnected=false;youtubeAccount='';youtubeStatus();youtubeMessage('yt-message','已登出 YouTube Music，本機保存的登入資訊已刪除。');}
+  catch(error){youtubeMessage('yt-message',error.message,true);}
+  finally{$('yt-logout').disabled=false;}
+};
 $('new-job').onclick=()=>{if(creating||job?.status==='matching'){notice('目前有工作正在進行，完成後再開始新的比對。',true);return;}resetWorkspace();document.body.classList.remove('show-history');$('history-toggle').setAttribute('aria-expanded','false');$('playlist-url').focus();};
 $('history-toggle').onclick=()=>{const open=document.body.classList.toggle('show-history');$('history-toggle').setAttribute('aria-expanded',String(open));};
 $('lang-toggle').onclick=()=>setLanguage(lang==='en'?'zh':'en');
@@ -287,7 +310,7 @@ setLanguage(initialLanguage()).then(()=>api('status')).then(data=>{
   token=data.csrf;savedClientId=data.client_id;spotifyConnected=data.spotify;spotifyCanWrite=!!data.spotify_can_write;
   $('client-id').value=data.client_id;
   spotifyStatus();
-  $('yt-status').textContent=t(data.youtube?'登入檔已設定 · 建立時驗證':'尚未設定');
+  youtubeConnected=!!data.youtube;youtubeAccount=data.youtube_account||'';youtubeStatus();
   if(!data.client_id)$('setup').open=true;
   $('direction').value=new URLSearchParams(location.search).get('direction')||sessionStorage.getItem('songferryDirection')||'spotify-to-youtube';
   if(!$('direction').value)$('direction').value='spotify-to-youtube';

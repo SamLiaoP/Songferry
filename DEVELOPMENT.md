@@ -13,7 +13,7 @@ Songferry（原名 Playlist Bridge）是一個使用 Flask、原生 JavaScript �
 | `app.py` | Flask 路由、CSRF/Host 檢查、Spotify PKCE、工作管理、`.local` 持久化與轉移流程 |
 | `matching.py` | 文字正規化、歌名/歌手/長度評分、版本差異警示 |
 | `reverse.py` | YouTube 歌單解析、Spotify 搜尋、每批 100 首寫入與讀回核對 |
-| `connect_youtube.py` | 本機登入標頭解析、帳號驗證、安全存檔 |
+| `connect_youtube.py` | 登入標頭解析（cURL / fetch / 原始標頭）、帳號驗證、安全存檔；供 `/api/youtube/connect` 與 `.command` 共用 |
 | `index.html` / `style.css` / `app.js` | 介面、左側比對紀錄、方向切換、比對結果、人工調整、工作恢復與語言切換 |
 | `i18n/en.json` | 英文翻譯表：以繁中原文為 key，含 `{name}` 佔位與處理動態訊息的 regex patterns |
 | `test_app.py` | 原始方向、請求保護、Spotify 登入與建立歌單測試 |
@@ -56,6 +56,8 @@ Windows 可使用 `.venv\Scripts\python.exe` 取代 `.venv/bin/python`。`.comma
 | `GET /api/status` | 取得連接狀態、Client ID、CSRF token 與 Spotify 私人歌單寫入權限狀態 |
 | `POST /api/config` | 儲存 `client_id`，並清除已保存的 Spotify 登入 |
 | `POST /api/logout` | 登出 Spotify，刪除 `.local/spotify_token.json` |
+| `POST /api/youtube/connect` | 接收 `text`（瀏覽器複製的 cURL、fetch 或標頭），本機解析、驗證並存成 `browser.json`，回傳帳號名稱 |
+| `POST /api/youtube/disconnect` | 刪除 `browser.json` 與 `youtube_account.json` |
 | `POST /api/login` | 接收 `direction`，回傳 Spotify PKCE 授權網址 |
 | `GET /callback` | 接收並驗證 Spotify OAuth state、交換 token |
 | `GET /api/jobs` | 列出所有比對紀錄摘要（不含候選內容），新的在前 |
@@ -77,7 +79,8 @@ Windows 可使用 `.venv\Scripts\python.exe` 取代 `.venv/bin/python`。`.comma
 ## 帳號與狀態
 
 - `.local/config.json`：使用者的 Spotify Client ID。
-- `.local/browser.json`：含 YouTube Music 登入資訊，建立時限制為 `0600`，目錄為 `0700`。
+- `.local/browser.json`：含 YouTube Music 登入資訊，建立時限制為 `0600`，目錄為 `0700`。`youtube_account.json` 只存驗證時取得的帳號名稱，供介面顯示。
+- 貼上的請求由 `connect_youtube.parse_headers` 解析：支援 Copy as cURL（`-H`/`-b`，含 `\\` 續行）、Copy as fetch (Node.js) 的 JSON、原始標頭行。只保留登入相關標頭，Cookie 需含 `SAPISID` 或 `__Secure-3PAPISID`，`x-goog-authuser` 缺少時預設 `0`。
 - `.local/spotify_token.json`：Spotify access/refresh token，`0600`。登入、更新 token 時寫入；登出、更換 Client ID 或 refresh 失敗時刪除。
 - `.local/jobs/<id>.json`：每個比對工作的完整內容（來源歌曲、候選、使用者選擇、建立結果）。所有寫入都用暫存檔加 `os.replace` 原子取代。啟動時 `restore()` 讀回；狀態仍為 `matching` 的工作標記為 `error`（中斷），`creating` 為真的工作保持 `attempted`，不會重送建立。
 - OAuth 待完成狀態：僅存在伺服器記憶體。

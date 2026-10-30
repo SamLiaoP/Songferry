@@ -4,6 +4,7 @@ Never prints request headers, cookies, tokens, or service exception details.
 import json
 import os
 import re
+import shlex
 import sys
 import tempfile
 from pathlib import Path
@@ -13,16 +14,43 @@ class SetupError(ValueError):
     pass
 
 
+def parse_curl(text):
+    """Chromium/Firefox "Copy as cURL" (bash). Only the -H/--header and -b/--cookie values are read."""
+    cleaned = text.replace('\\\n', ' ').replace('^\n', ' ')
+    try:
+        parts = shlex.split(cleaned)
+    except ValueError:
+        raise SetupError('無法解析 cURL 指令，請重新複製一次。') from None
+    headers = {}
+    i = 0
+    while i < len(parts):
+        part = parts[i]
+        if part in ('-H', '--header') and i + 1 < len(parts):
+            key, sep, value = parts[i + 1].partition(':')
+            if sep:
+                headers[key.strip()] = value.strip()
+            i += 2
+        elif part in ('-b', '--cookie') and i + 1 < len(parts):
+            headers['cookie'] = parts[i + 1].strip()
+            i += 2
+        else:
+            i += 1
+    return headers
+
+
 def parse_headers(text):
     if not text.strip():
-        raise SetupError('剪貼簿是空的。請先從 YouTube Music 複製已登入請求的標頭。')
+        raise SetupError('剪貼簿是空的。請先從 YouTube Music 複製已登入的請求。')
+    stripped = text.strip()
     # Chromium: Copy as fetch (Node.js). Parse only JSON; never execute clipboard code.
     match = re.search(r'[\"\']headers[\"\']\s*:\s*', text)
-    if match:
+    if stripped.startswith('curl '):
+        headers = parse_curl(stripped)
+    elif match:
         try:
             headers, _ = json.JSONDecoder().raw_decode(text[match.end():])
         except (ValueError, TypeError):
-            raise SetupError('無法解析。Chrome 請使用「Copy as fetch (Node.js)」，Firefox 請複製 Request Headers。') from None
+            raise SetupError('無法解析。Chrome 請使用「Copy as cURL」或「Copy as fetch (Node.js)」，Firefox 請複製 Request Headers。') from None
     else:
         try:
             headers = json.loads(text)
@@ -30,13 +58,17 @@ def parse_headers(text):
             headers = {}
             for line in text.splitlines():
                 key, sep, value = line.partition(':')
-                if sep and key.strip():
+                if sep and key.strip() and ' ' not in key.strip():
                     headers[key.strip()] = value.strip()
     if not isinstance(headers, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in headers.items()):
         raise SetupError('內容不是請求標頭，請重新複製。')
     headers = {k.lower(): v for k, v in headers.items()}
-    if not headers.get('cookie') or not headers.get('x-goog-authuser'):
-        raise SetupError('缺少 Cookie 或 X-Goog-AuthUser。請確認已登入 YouTube Music，選擇 browse 請求；Chrome 要用 Copy as fetch (Node.js)。')
+    cookie = headers.get('cookie', '')
+    if not cookie:
+        raise SetupError('複製的內容沒有 Cookie。請確認已登入 YouTube Music，並用「Copy as cURL」或「Copy as fetch (Node.js)」複製 music.youtube.com 的請求。')
+    if not re.search(r'(?:^|;\s*)(?:__Secure-3PAPISID|SAPISID)=', cookie):
+        raise SetupError('Cookie 裡沒有登入資訊。請先在該瀏覽器登入 YouTube Music，再重新複製。')
+    headers.setdefault('x-goog-authuser', '0')  # First Google account in the browser session.
     # Only authentication-related headers are retained, for the fixed YouTube Music service.
     allowed = {'cookie', 'x-goog-authuser', 'authorization', 'origin', 'x-origin', 'accept', 'content-type', 'user-agent'}
     return {k: v for k, v in headers.items() if k in allowed}
@@ -56,21 +88,30 @@ def connect(text, folder=None):
     with TimedSession() as session:
         try:
             account = YTMusic(headers, requests_session=session).get_account_info()
-            if not account.get('accountName'):
-                raise SetupError('無法確認登入帳號，請重新複製已登入請求的標頭。')
+            name = account.get('accountName')
+            if not name:
+                raise SetupError('無法確認登入帳號，請重新複製已登入的請求。')
         except SetupError:
             raise
         except Exception:
-            raise SetupError('登入驗證失敗。請確認網路正常、已登入 YouTube Music，並重新複製最新的 browse 請求。') from None
+            raise SetupError('登入驗證失敗。請確認網路正常、已登入 YouTube Music，並重新複製最新的請求。') from None
     folder = Path(folder) if folder else Path(__file__).resolve().parent / '.local'
     folder.mkdir(mode=0o700, parents=True, exist_ok=True)
     folder.chmod(0o700)
+    write_private(folder / 'browser.json', headers)
+    write_private(folder / 'youtube_account.json', {'accountName': str(name)})
+    return str(name)
+
+
+def write_private(path, data):
     temporary = None
     try:
-        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=folder, delete=False) as file:
+        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=path.parent, delete=False) as file:
             temporary = Path(file.name)
-            json.dump(headers, file)
-        os.replace(temporary, folder / 'browser.json')
+            json.dump(data, file, ensure_ascii=False)
+        temporary.chmod(0o600)
+        os.replace(temporary, path)
+        temporary = None
     finally:
         if temporary and temporary.exists():
             temporary.unlink()
@@ -82,14 +123,14 @@ def main():
         text = sys.stdin.read(2 * 1024 * 1024 + 1)
         if len(text) > 2 * 1024 * 1024:
             raise SetupError('複製內容太長，請只複製單一 browse 請求。')
-        connect(text)
+        name = connect(text)
     except SetupError as exc:
         print(str(exc))
         return 1
     except Exception:
         print('無法儲存登入設定，請確認執行環境與資料夾權限。')
         return 1
-    print('YouTube Music 已驗證並連接成功！回到本機工具重新整理，就能開始轉移歌單。')
+    print('YouTube Music 已驗證並連接成功（帳號：' + name + '）！回到本機工具重新整理，就能開始轉移歌單。')
     print('登入資訊只保存在本機 .local/browser.json，請勿分享此檔案。')
     return 0
 

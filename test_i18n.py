@@ -23,7 +23,8 @@ class TranslationTests(unittest.TestCase):
 
     def test_server_messages_are_translated(self):
         skip = {'由 Songferry 從 Spotify 轉移。', '由 Songferry 從 YouTube Music 轉移。', '不支援的語言。'}
-        for name in ('app.py', 'reverse.py', 'matching.py'):
+        skip |= {'YouTube Music 已驗證並連接成功（帳號：', '）！回到本機工具重新整理，就能開始轉移歌單。', '登入資訊只保存在本機 .local/browser.json，請勿分享此檔案。', '正在驗證 YouTube Music 登入，請稍候…', '複製內容太長，請只複製單一 browse 請求。'}
+        for name in ('app.py', 'reverse.py', 'matching.py', 'connect_youtube.py'):
             source = (ROOT / name).read_text(encoding='utf-8')
             for literal in self.chinese_literals(source):
                 if literal in skip or '\\b' in literal or '{' in literal:
