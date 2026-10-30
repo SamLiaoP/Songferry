@@ -7,9 +7,17 @@
 /* Matching history sidebar */
 .layout{display:flex;align-items:flex-start;max-width:1460px;margin:auto}
 .layout>main{flex:1;min-width:0}
-#history{width:272px;flex:none;position:sticky;top:0;max-height:100vh;overflow:auto;padding:26px 16px 26px 24px;border-right:1px solid var(--line)}
-.history-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:14px}
-.history-head .secondary{padding:7px 10px;font-size:11px}
+#history{width:272px;flex:none;position:sticky;top:0;max-height:100vh;overflow:auto;padding:18px 16px 26px 20px;border-right:1px solid var(--line);transition:width .22s ease,padding .22s ease,transform .22s ease;box-sizing:border-box}
+.history-inner{width:236px}
+.history-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}
+.new-job{width:100%;padding:9px 10px;font-size:11px;margin-bottom:12px}
+.icon-button{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:8px;background:none;color:#5e685b;border:1px solid transparent;padding:0}
+.icon-button:hover{background:#eef0e4;filter:none}
+header{gap:12px}
+header .brand{margin-right:auto}
+#history-toggle{margin-right:2px}
+body:not(.history-open) #history{width:0;padding-left:0;padding-right:0;border-right-color:transparent;overflow:hidden}
+#history-backdrop{display:none}
 #history-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px}
 .history-item{display:flex;align-items:stretch;border-radius:8px;transition:background .15s}
 .history-item:hover,.history-item:focus-within{background:#f1f2ea}
@@ -25,10 +33,9 @@
 .history-delete.confirm{color:#9a3e2d;font-size:10px;font-weight:650}
 .header-right{display:flex;align-items:center;gap:12px}
 #lang-toggle{padding:8px 11px;font-size:11px;font-family:ui-monospace,monospace;letter-spacing:.5px;min-width:44px}
-#history-toggle{display:none;padding:8px 12px;font-size:11px}
 .button-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .link-button{background:none;padding:0;font-size:11px;color:#667257;text-decoration:underline;font-weight:500}
-@media(max-width:960px){#history{position:fixed;top:0;left:0;bottom:0;z-index:5;background:var(--paper);transform:translateX(-100%);transition:transform .2s;box-shadow:0 0 0 100vw #0000;width:min(300px,85vw)}body.show-history #history{transform:none;box-shadow:0 0 0 100vw #2027223d}#history-toggle{display:inline-block}}
+@media(max-width:960px){#history{position:fixed;top:0;left:0;bottom:0;z-index:6;background:var(--paper);width:min(300px,85vw);box-shadow:4px 0 24px #20272222}body:not(.history-open) #history{transform:translateX(-100%);width:min(300px,85vw);padding:18px 16px 26px 20px;border-right-color:var(--line)}#history-backdrop{position:fixed;inset:0;z-index:5;background:#2027223d}body.history-open #history-backdrop{display:block}}
 
 /* YouTube Music connect panel */
 .connect-panel{margin-top:16px;border:1px solid var(--line);border-radius:10px;padding:20px 22px;background:#f8f8f1}
@@ -45,3 +52,4 @@ textarea:focus{outline:2px solid #7d9840;outline-offset:2px}
 .connect-lead{font-size:12px;line-height:1.8;color:#5d675e;margin:8px 0 10px}
 .connect-or{font-size:12px;font-weight:600;margin:18px 0 0;padding-top:14px;border-top:1px solid var(--line)}
 #yt-import-buttons .secondary{padding:11px 16px}
+body.no-transition #history{transition:none}

@@ -30,6 +30,8 @@ function applyLanguage() {
     }
   }
   $('lang-toggle').textContent = lang === 'en' ? '中文' : 'EN';
+  $('history-toggle').setAttribute('aria-label', t(document.body.classList.contains('history-open') ? '收起比對紀錄' : '開啟比對紀錄'));
+  $('history-toggle').title = t('比對紀錄');
   $('lang-toggle').setAttribute('aria-label', lang === 'en' ? '切換成中文' : 'Switch to English');
 }
 async function setLanguage(next) {
@@ -171,7 +173,7 @@ function openJob(jid){
   history.replaceState(null,'','/?'+new URLSearchParams({job:jobId,direction:$('direction').value}));
   $('playlist-url').value='';$('target-title').value='';$('result').hidden=true;$('notice').hidden=true;$('review').hidden=false;$('import-button').disabled=true;
   $('tracks').replaceChildren();$('playlist-title').textContent=t('讀取紀錄中…');$('progress').textContent='';$('progress-bar').style.width='0';
-  document.body.classList.remove('show-history');$('history-toggle').setAttribute('aria-expanded','false');
+  if(isNarrow())setHistoryOpen(false);
   highlightHistory();
   poll().then(()=>$('review').scrollIntoView({behavior:'smooth',block:'start'}));
 }
@@ -344,8 +346,23 @@ $('yt-logout').onclick=async()=>{
   catch(error){youtubeMessage('yt-message',error.message,true);}
   finally{$('yt-logout').disabled=false;}
 };
-$('new-job').onclick=()=>{if(creating||job?.status==='matching'){notice('目前有工作正在進行，完成後再開始新的比對。',true);return;}resetWorkspace();document.body.classList.remove('show-history');$('history-toggle').setAttribute('aria-expanded','false');$('playlist-url').focus();};
-$('history-toggle').onclick=()=>{const open=document.body.classList.toggle('show-history');$('history-toggle').setAttribute('aria-expanded',String(open));};
+$('new-job').onclick=()=>{if(creating||job?.status==='matching'){notice('目前有工作正在進行，完成後再開始新的比對。',true);return;}resetWorkspace();if(isNarrow())setHistoryOpen(false);$('playlist-url').focus();};
+// --- Sidebar open/close: inline column on wide screens, overlay drawer on narrow ones; choice remembered.
+function isNarrow(){return matchMedia('(max-width:960px)').matches;}
+function setHistoryOpen(open){
+  document.body.classList.toggle('history-open',open);
+  $('history-toggle').setAttribute('aria-expanded',String(open));
+  $('history-toggle').setAttribute('aria-label',t(open?'收起比對紀錄':'開啟比對紀錄'));
+  $('history-backdrop').hidden=!open;
+  try{localStorage.setItem('songferry.history',open?'open':'closed');}catch(_){}
+}
+function historyOpen(){return document.body.classList.contains('history-open');}
+$('history-toggle').onclick=()=>setHistoryOpen(!historyOpen());
+$('history-collapse').onclick=()=>{setHistoryOpen(false);$('history-toggle').focus();};
+$('history-backdrop').onclick=()=>setHistoryOpen(false);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&historyOpen()&&isNarrow())setHistoryOpen(false);});
+(function(){let saved=null;try{saved=localStorage.getItem('songferry.history');}catch(_){}
+  document.body.classList.add('no-transition');setHistoryOpen(saved?saved==='open':!isNarrow());requestAnimationFrame(()=>document.body.classList.remove('no-transition'));})();
 $('lang-toggle').onclick=()=>setLanguage(lang==='en'?'zh':'en');
 $('target-title').oninput=()=>{if(job?.status==='ready'&&!job.attempted)saveSelections();};
 $('import-form').onsubmit=async e=>{e.preventDefault();$('import-button').disabled=true;try{const data=await api('jobs',{url:$('playlist-url').value,direction:$('direction').value});clearTimeout(polling);jobId=data.id;sessionStorage.setItem('songferryJob',jobId);history.replaceState(null,'','/?'+new URLSearchParams({job:jobId,direction:$('direction').value}));job=null;selected=[];$('target-title').value='';$('result').hidden=true;$('review').hidden=false;notice('正在讀取歌單並逐首搜尋，較長的歌單需要幾分鐘。');loadHistory();await poll();}catch(error){notice(error.message,true);$('import-button').disabled=false;}};

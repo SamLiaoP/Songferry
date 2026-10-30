@@ -194,7 +194,10 @@
     "從瀏覽器匯入登入": "Import login from this browser",
     "偵測到你正在使用 {browser}。": "You appear to be using {browser}.",
     "不是這個瀏覽器？": "Not this browser?",
-    "無法判斷目前的瀏覽器，請選擇已登入 YouTube Music 的那一個：": "Could not tell which browser this is. Pick the one signed in to YouTube Music:"
+    "無法判斷目前的瀏覽器，請選擇已登入 YouTube Music 的那一個：": "Could not tell which browser this is. Pick the one signed in to YouTube Music:",
+    "開啟比對紀錄": "Open history",
+    "收起比對紀錄": "Collapse history",
+    "收起": "Collapse"
   },
   "patterns": [
     [
