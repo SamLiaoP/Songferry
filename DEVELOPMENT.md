@@ -4,9 +4,17 @@
 
 Songferry（原名 Playlist Bridge）是一個使用 Flask、原生 JavaScript 與 ytmusicapi 的個人本機應用程式，原始碼在 https://github.com/SamLiaoP/Songferry 。Python 3.10 以上可執行，建議 3.12。它支援 Spotify → YouTube Music 與 YouTube Music → Spotify，兩個方向都建立新的私人歌單。
 
-目前以單一使用者及單一 Python 伺服器程序為前提。Spotify 登入與比對紀錄都保存在 `.local/`，重啟後由 `restore()` 讀回。介面提供繁體中文與英文，分成帳號連接、歌單轉移、連結加入歌單三個頁面（`/accounts`、`/transfer`、`/links`），由前端 `showView()` 切換，三個路徑都回傳同一份 `index.html`。比對確認區塊（`#review`）只有一份，依目前頁面移進對應的 `.review-slot`。
+目前以單一使用者及單一 Python 伺服器程序為前提。Spotify 登入與比對紀錄都保存在 `.local/`，重啟後由 `restore()` 讀回。介面提供繁體中文與英文，分成帳號連接、歌單轉移、連結加入歌單三個頁面（`/accounts`、`/transfer`、`/links`），由前端 `showView()` 切換，三個路徑都回傳同一份 `static/index.html`。比對確認區塊（`#review`）只有一份，依目前頁面移進對應的 `.review-slot`。
 
 ## 檔案結構
+
+```
+app.py  matching.py  reverse.py  links.py  connect_youtube.py   # 伺服器與邏輯
+static/   index.html  app.js  style.css  favicon.svg  i18n/en.json   # 瀏覽器端
+tests/    test_*.py                                             # 離線單元測試
+docs/     preview.py  screenshots/                              # 示範伺服器與 README 截圖
+啟動.command  連接YouTubeMusic.command                          # macOS 啟動器
+```
 
 | 檔案 | 用途 |
 |---|---|
@@ -15,14 +23,15 @@ Songferry（原名 Playlist Bridge）是一個使用 Flask、原生 JavaScript �
 | `reverse.py` | YouTube 歌單解析、Spotify 搜尋、每批 100 首寫入與讀回核對 |
 | `links.py` | 從雜亂文字抓出歌曲連結、查詢資訊、跨平台比對、加入既有歌單並讀回、列出可寫入的歌單 |
 | `connect_youtube.py` | 登入標頭解析（cURL / fetch / 原始標頭）、帳號驗證、安全存檔；供 `/api/youtube/connect` 與 `.command` 共用 |
-| `index.html` / `style.css` / `app.js` | 介面、左側比對紀錄、方向切換、比對結果、人工調整、工作恢復與語言切換 |
-| `i18n/en.json` | 英文翻譯表：以繁中原文為 key，含 `{name}` 佔位與處理動態訊息的 regex patterns |
-| `test_app.py` | 原始方向、請求保護、Spotify 登入與建立歌單測試 |
-| `test_reverse.py` | 反向讀取、Spotify 搜尋、權限、批次與部分失敗測試 |
-| `test_connect_youtube.py` | 登入資料解析、驗證失敗保留舊設定與檔案權限測試 |
-| `test_persistence.py` | Spotify 登入與比對紀錄的保存、重啟恢復、中斷標記、刪除與選擇同步測試 |
-| `test_i18n.py` | 翻譯表涵蓋所有介面字串與伺服器中文訊息、佔位符一致、翻譯檔路由 |
-| `test_links.py` | 連結抓取、歌名清理、連結比對、加入既有歌單去重與核對、歌單列表與路由 |
+| `static/index.html` / `style.css` / `app.js` | 介面、左側比對紀錄、方向切換、比對結果、人工調整、工作恢復與語言切換 |
+| `static/i18n/en.json` | 英文翻譯表：以繁中原文為 key，含 `{name}` 佔位與處理動態訊息的 regex patterns |
+| `tests/test_app.py` | 原始方向、請求保護、Spotify 登入與建立歌單測試 |
+| `tests/test_reverse.py` | 反向讀取、Spotify 搜尋、權限、批次與部分失敗測試 |
+| `tests/test_connect_youtube.py` | 登入資料解析、驗證失敗保留舊設定與檔案權限測試 |
+| `tests/test_persistence.py` | Spotify 登入與帳號名稱、比對紀錄的保存、重啟恢復、中斷標記、刪除與選擇同步測試 |
+| `tests/test_i18n.py` | 翻譯表涵蓋所有介面字串與伺服器中文訊息、佔位符一致、翻譯檔路由 |
+| `tests/test_links.py` | 連結抓取、歌名清理、連結比對、加入既有歌單去重與核對、歌單列表與路由 |
+| `docs/preview.py` | 以暫存資料夾與假帳號啟動在 8877 埠的示範伺服器，供拍 README 截圖；不碰真實 `.local/` 與外部服務 |
 | `啟動.command` | macOS 啟動；只在第一次建立 `.venv` 時安裝依賴 |
 | `連接YouTubeMusic.command` | macOS 剪貼簿匯入本機登入資料，完成後清空剪貼簿 |
 
@@ -82,7 +91,7 @@ Windows 可使用 `.venv\Scripts\python.exe` 取代 `.venv/bin/python`。`.comma
 
 ## 語言
 
-繁體中文是原始語言：`index.html` 與 `app.js` 裡的字串都是中文，伺服器的錯誤訊息也是。英文由 `i18n/en.json` 提供，前端的 `t()` 以中文原文查表，`{name}` 佔位由前端填入；伺服器回傳的中文訊息（含存在 job 檔裡的 `row.error`、`warnings`、`result.warning`）也在前端翻譯，因此後端與測試不需要知道語言。含數字的動態訊息由 `patterns` 的 regex 處理。靜態 HTML 以 `data-i18n`（文字）與 `data-i18n-attr`（屬性）標記；語言選擇存在 localStorage，預設依瀏覽器語言。新增字串時在兩邊都加上，`test_i18n.py` 會檢查漏翻。
+繁體中文是原始語言：`static/index.html` 與 `static/app.js` 裡的字串都是中文，伺服器的錯誤訊息也是。英文由 `static/i18n/en.json` 提供，前端的 `t()` 以中文原文查表，`{name}` 佔位由前端填入；伺服器回傳的中文訊息（含存在 job 檔裡的 `row.error`、`warnings`、`result.warning`）也在前端翻譯，因此後端與測試不需要知道語言。含數字的動態訊息由 `patterns` 的 regex 處理。靜態 HTML 以 `data-i18n`（文字）與 `data-i18n-attr`（屬性）標記；語言選擇存在 localStorage，預設依瀏覽器語言。新增字串時在兩邊都加上，`tests/test_i18n.py` 會檢查漏翻。
 
 ## 帳號與狀態
 
@@ -105,11 +114,16 @@ Spotify 每次最多加入 100 首，保留順序與重複歌曲。若部分請�
 ## 測試
 
 ```sh
-.venv/bin/python -B -m unittest -v test_app.py test_connect_youtube.py test_reverse.py test_persistence.py test_i18n.py
-node --check app.js
+.venv/bin/python -B -m unittest discover -s tests -v
+node --check static/app.js
 ```
 
-Python 測試可離線執行，使用模擬 API，不需帳號，也不會建立真實歌單。目前 50 項測試通過。實際端到端驗證需另用個人帳號與小型測試歌單完成。
+Python 測試可離線執行，使用模擬 API，不需帳號，也不會建立真實歌單。目前 75 項測試通過。實際端到端驗證需另用個人帳號與小型測試歌單完成。
+
+## 截圖
+
+README 的截圖來自 `docs/preview.py`：它在 8877 埠啟動一份應用程式，帳號、名稱與比對紀錄都是假資料，放在暫存資料夾，不會讀寫真實的 `.local/`，也不會連任何服務。執行後用約 1360 像素寬的瀏覽器視窗開 `/accounts`、`/transfer?job=<id>`（啟動時會印出 id）與 `/links`，中英文各截一次存到 `docs/screenshots/`。
+
 
 ## 後續開發方向
 

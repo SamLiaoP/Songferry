@@ -20,6 +20,7 @@ from reverse import (FORWARD, REVERSE, candidate_id, youtube_playlist_id, youtub
                      search_spotify, create_spotify)
 
 ROOT = Path(__file__).resolve().parent
+STATIC = ROOT / 'static'  # Frontend files served as they are.
 LOCAL = ROOT / '.local'  # Account data and matching history; ignored by git.
 PORT = 8876
 BASE = f'http://127.0.0.1:{PORT}'
@@ -311,30 +312,30 @@ def unexpected(exc):
 @app.get('/transfer')
 @app.get('/links')
 def index():
-    return send_file(ROOT / 'index.html')
+    return send_file(STATIC / 'index.html')
 
 
 @app.get('/app.js')
 def javascript():
-    return send_file(ROOT / 'app.js')
+    return send_file(STATIC / 'app.js')
 
 
 @app.get('/style.css')
 def css():
-    return send_file(ROOT / 'style.css')
+    return send_file(STATIC / 'style.css')
 
 
 @app.get('/i18n/<lang>.json')
 def translations(lang):
     if lang not in ('en',):
         raise ValueError('不支援的語言。')
-    return send_file(ROOT / 'i18n' / (lang + '.json'), mimetype='application/json')
+    return send_file(STATIC / 'i18n' / (lang + '.json'), mimetype='application/json')
 
 
 @app.get('/favicon.ico')
 @app.get('/favicon.svg')
 def favicon():
-    return send_file(ROOT / 'favicon.svg', mimetype='image/svg+xml')
+    return send_file(STATIC / 'favicon.svg', mimetype='image/svg+xml')
 
 
 @app.get('/api/status')

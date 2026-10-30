@@ -50,7 +50,7 @@ Open http://127.0.0.1:8876. On macOS you can double-click `啟動.command` inste
 
 Spotify's 2026 development-mode apps require the developer to have Premium, allow at most 5 users, and can only read playlists you own or collaborate on. Songferry does not try to work around these limits. Spotify → YouTube Music only asks for read scopes; YouTube Music → Spotify additionally asks for `playlist-modify-private`, so switching to that direction requires re-authorising once.
 
-The Spotify token is saved to `.local/spotify_token.json` (mode 0600) and refreshed automatically. *Sign out of Spotify* in the Spotify card, or changing the Client ID, deletes it.
+Once signed in, the Spotify card shows the account's display name, just like the YouTube Music card. The token is saved to `.local/spotify_token.json` (mode 0600) and refreshed automatically. *Sign out of Spotify* in the Spotify card, or changing the Client ID, deletes it.
 
 ### YouTube Music
 
@@ -76,7 +76,7 @@ mkdir -p .local && chmod 700 .local
 chmod 600 .local/browser.json
 ```
 
-Everything under `.local/` (`browser.json`, `spotify_token.json`, `config.json`, `jobs/`) holds credentials or your playlist data. It is git-ignored; never share it, sync it to the cloud, or commit it. Deleting the folder removes all saved logins and history.
+Everything under `.local/` (`browser.json`, `spotify_token.json`, `spotify_account.json`, `youtube_account.json`, `config.json`, `jobs/`) holds credentials, account names or your playlist data. It is git-ignored; never share it, sync it to the cloud, or commit it. Deleting the folder removes all saved logins and history.
 
 ![First-time setup panel](docs/screenshots/setup-en.jpg)
 
@@ -112,10 +112,10 @@ Every transfer and link import is saved as `.local/jobs/<id>.json` the moment it
 ## Development and tests
 
 ```sh
-.venv/bin/python -m unittest -v test_app.py test_connect_youtube.py test_reverse.py test_persistence.py test_i18n.py test_links.py
+.venv/bin/python -m unittest discover -s tests -v
 ```
 
-The tests run offline against mocked services and never touch your real `.local/`. See [DEVELOPMENT.md](DEVELOPMENT.md) for the architecture, HTTP API and storage layout, and [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+The tests run offline against mocked services and never touch your real `.local/`. The Python modules live at the project root (`app.py` and the matching, reverse, links and YouTube login modules), the browser files in `static/`, the tests in `tests/`, and `docs/preview.py` starts a copy of the app with sample data for screenshots. See [DEVELOPMENT.md](DEVELOPMENT.md) for the architecture, HTTP API and storage layout, and [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 
 ## License
 

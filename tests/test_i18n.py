@@ -5,13 +5,14 @@ import unittest
 from pathlib import Path
 import app as module
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
+STATIC = ROOT / 'static'
 
 
 class TranslationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        data = json.loads((ROOT / 'i18n' / 'en.json').read_text(encoding='utf-8'))
+        data = json.loads((STATIC / 'i18n' / 'en.json').read_text(encoding='utf-8'))
         cls.strings = data['strings']
         cls.patterns = [(re.compile(p), r) for p, r in data['patterns']]
 
@@ -40,12 +41,12 @@ class TranslationTests(unittest.TestCase):
             self.assertTrue(self.covered(text), text)
 
     def test_ui_strings_are_translated(self):
-        html = (ROOT / 'index.html').read_text(encoding='utf-8')
+        html = (STATIC / 'index.html').read_text(encoding='utf-8')
         for text in re.findall(r'data-i18n>([^<]+)<', html):
             self.assertIn(text.strip(), self.strings, f'index.html: {text!r}')
         for text in re.findall(r'placeholder="([^"]*[\u4e00-\u9fff][^"]*)"', html):
             self.assertIn(text, self.strings, f'placeholder: {text!r}')
-        js = (ROOT / 'app.js').read_text(encoding='utf-8')
+        js = (STATIC / 'app.js').read_text(encoding='utf-8')
         for text in re.findall(r"(?<![\w$.])t\('([^']+)'", js):
             self.assertIn(text, self.strings, f'app.js t(): {text!r}')
         for text in re.findall(r"(?:notice|spotifyMessage|showSpotifySetup)\('([^']+)'", js):

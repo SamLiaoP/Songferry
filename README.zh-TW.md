@@ -50,7 +50,7 @@ python3 -m venv .venv
 
 2026 年的新開發模式 App 要求開發者有 Premium，最多 5 位授權使用者，而且只能讀取自己擁有或共同編輯的歌單。Songferry 不會嘗試繞過這些限制。Spotify → YouTube Music 僅要求讀取權限；YouTube Music → Spotify 另外要求 `playlist-modify-private`，切到反向時需重新授權一次。
 
-Spotify token 保存在 `.local/spotify_token.json`（權限 0600），過期時自動更新。按 Spotify 卡片的「登出 Spotify」或更換 Client ID 會刪除它。
+登入後 Spotify 卡片會顯示帳號的顯示名稱，和 YouTube Music 卡片一樣。token 保存在 `.local/spotify_token.json`（權限 0600），過期時自動更新。按 Spotify 卡片的「登出 Spotify」或更換 Client ID 會刪除它。
 
 ### YouTube Music
 
@@ -76,7 +76,7 @@ mkdir -p .local && chmod 700 .local
 chmod 600 .local/browser.json
 ```
 
-`.local/` 裡的所有檔案（`browser.json`、`spotify_token.json`、`config.json`、`jobs/`）都含有登入資訊或你的歌單內容，已列在 `.gitignore`，請勿分享、雲端同步或提交。刪除整個資料夾就會移除所有保存的登入與紀錄。
+`.local/` 裡的所有檔案（`browser.json`、`spotify_token.json`、`spotify_account.json`、`youtube_account.json`、`config.json`、`jobs/`）都含有登入資訊、帳號名稱或你的歌單內容，已列在 `.gitignore`，請勿分享、雲端同步或提交。刪除整個資料夾就會移除所有保存的登入與紀錄。
 
 ## 轉移歌單
 
@@ -110,10 +110,10 @@ Podcast、本機音檔與無法讀取的項目會略過。地區、版權與歌�
 ## 開發與測試
 
 ```sh
-.venv/bin/python -m unittest -v test_app.py test_connect_youtube.py test_reverse.py test_persistence.py test_i18n.py test_links.py
+.venv/bin/python -m unittest discover -s tests -v
 ```
 
-測試以模擬服務離線執行，不會碰到你真實的 `.local/`。架構、HTTP API 與儲存方式見 [DEVELOPMENT.md](DEVELOPMENT.md)，送 PR 前請看 [CONTRIBUTING.md](CONTRIBUTING.md)。
+測試以模擬服務離線執行，不會碰到你真實的 `.local/`。Python 模組放在專案根目錄（`app.py` 與比對、反向、連結、YouTube 登入模組），瀏覽器端檔案在 `static/`，測試在 `tests/`，`docs/preview.py` 會用示範資料啟動一份應用程式供截圖。架構、HTTP API 與儲存方式見 [DEVELOPMENT.md](DEVELOPMENT.md)，送 PR 前請看 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 授權
 

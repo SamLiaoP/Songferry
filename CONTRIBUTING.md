@@ -7,7 +7,7 @@
 1. 依 README 建立 Python 虛擬環境並安裝依賴。
 2. 執行全部單元測試，確認環境正常。
 3. 修改相關模組；平台 API、權限、分頁或寫入流程改動應補上對應測試。
-4. 執行 Python 測試及 `node --check app.js`，並以本機介面確認操作流程。新增介面或錯誤字串時，同時更新 `i18n/en.json`；`test_i18n.py` 會檢查漏翻。
+4. 執行 Python 測試（`.venv/bin/python -m unittest discover -s tests`）及 `node --check static/app.js`，並以本機介面確認操作流程。新增介面或錯誤字串時，同時更新 `static/i18n/en.json`；`tests/test_i18n.py` 會檢查漏翻。
 5. 提交說明寫明行為變化、驗證方式及仍待驗證的外部 API 行為。
 
 ## 初始化自己的 Git 儲存庫
