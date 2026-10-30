@@ -41,7 +41,7 @@ async function setLanguage(next) {
   try { localStorage.setItem('songferry.lang', lang); } catch (_) {}
   applyLanguage();
   configureDirection();
-  if (token) { spotifyStatus(); youtubeStatus(); for(const b of $('yt-import-buttons').children)b.textContent=t('從 {browser} 匯入登入',{browser:b.dataset.name}); }
+  if (token) { spotifyStatus(); youtubeStatus(); if (browsersLoaded) renderImportButtons(); }
   if (job) { renderRows(); renderProgress(); if (job.result) showResult(job.result); if (job.title) $('playlist-title').textContent = job.title; }
   if (lastNotice && !$('notice').hidden) notice(lastNotice.text, lastNotice.error, lastNotice.params);
   if (token) loadHistory();
@@ -279,26 +279,54 @@ $('logout').onclick=async()=>{
   catch(error){spotifyMessage(error.message,true);}
   finally{$('logout').disabled=false;}
 };
-let browsersLoaded=false;
+let browsersLoaded=false, availableBrowsers=[], currentBrowser=null;
+async function detectBrowser(){
+  // Which browser is this page open in? Brave hides itself from brands but exposes navigator.brave.
+  try{if(navigator.brave&&await navigator.brave.isBrave())return 'brave';}catch(_){}
+  const brands=(navigator.userAgentData?.brands||[]).map(b=>b.brand);
+  if(brands.includes('Microsoft Edge'))return 'edge';
+  if(brands.includes('Google Chrome'))return 'chrome';
+  if(brands.includes('Chromium'))return 'chromium';
+  const ua=navigator.userAgent;
+  if(/Firefox\//.test(ua))return 'firefox';
+  if(/Edg\//.test(ua))return 'edge';
+  if(/Chrome\//.test(ua)&&!/OPR\//.test(ua))return 'chrome';
+  return null;
+}
+function importButton(browser, label, className){
+  const button=node('button',label,className);button.type='button';button.dataset.browser=browser.id;button.dataset.name=browser.name;
+  button.onclick=()=>importFromBrowser(browser.id,browser.name);
+  return button;
+}
+function renderImportButtons(){
+  const main=$('yt-import-buttons'), others=$('yt-import-others'), detected=$('yt-import-detected');
+  main.replaceChildren();others.replaceChildren();others.hidden=true;detected.replaceChildren();
+  const current=availableBrowsers.find(b=>b.id===currentBrowser);
+  const rest=availableBrowsers.filter(b=>b.id!==currentBrowser);
+  if(current){
+    main.append(importButton(current,t('從瀏覽器匯入登入'),'secondary'));
+    detected.append(document.createTextNode(t('偵測到你正在使用 {browser}。',{browser:current.name})));
+    if(rest.length){const link=node('button',t('不是這個瀏覽器？'),'link-button');link.type='button';link.onclick=()=>{others.hidden=!others.hidden;};detected.append(document.createTextNode(' '),link);}
+  } else {
+    detected.append(document.createTextNode(t(availableBrowsers.length?'無法判斷目前的瀏覽器，請選擇已登入 YouTube Music 的那一個：':'')));
+    others.hidden=false;
+  }
+  for(const browser of rest)others.append(importButton(browser,t('從 {browser} 匯入登入',{browser:browser.name}),'secondary'));
+  $('yt-import').hidden=!availableBrowsers.length;
+}
 async function loadBrowsers(){
-  if(browsersLoaded)return;
+  if(browsersLoaded){renderImportButtons();return;}
   let data;
   try{data=await api('youtube/browsers');}catch(_){return;}
-  browsersLoaded=true;
-  const box=$('yt-import-buttons');box.replaceChildren();
-  for(const browser of data.browsers){
-    const button=node('button',t('從 {browser} 匯入登入',{browser:browser.name}),'secondary');button.type='button';button.dataset.browser=browser.id;button.dataset.name=browser.name;
-    button.onclick=()=>importFromBrowser(browser.id,browser.name);
-    box.append(button);
-  }
-  $('yt-import').hidden=!data.browsers.length;
+  browsersLoaded=true;availableBrowsers=data.browsers;currentBrowser=await detectBrowser();
+  renderImportButtons();
 }
 async function importFromBrowser(id,name){
-  for(const b of $('yt-import-buttons').children)b.disabled=true;
+  for(const b of [...$('yt-import-buttons').children,...$('yt-import-others').children])b.disabled=true;
   youtubeMessage('yt-import-message','正在讀取 {browser} 的登入資料…如果跳出鑰匙圈視窗，請按「允許」。',false,{browser:name});
   try{const data=await api('youtube/import',{browser:id});youtubeConnected=true;youtubeAccount=data.account||'';youtubeStatus();$('yt-connect').hidden=true;$('yt-import-message').hidden=true;youtubeMessage('yt-message','已連接 YouTube Music：{account}。登入已保存在本機。',false,{account:youtubeAccount});}
   catch(error){youtubeMessage('yt-import-message',error.message,true);}
-  finally{for(const b of $('yt-import-buttons').children)b.disabled=false;}
+  finally{for(const b of [...$('yt-import-buttons').children,...$('yt-import-others').children])b.disabled=false;}
 }
 $('yt-connect-button').onclick=()=>{$('yt-connect').hidden=false;$('yt-panel-message').hidden=true;$('yt-import-message').hidden=true;loadBrowsers();$('yt-connect').scrollIntoView({behavior:'smooth',block:'center'});};
 $('yt-cancel').onclick=()=>{$('yt-connect').hidden=true;$('yt-headers').value='';};

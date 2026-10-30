@@ -190,7 +190,11 @@
     "或者手動貼上一次請求：": "Or paste one request manually:",
     "從 {browser} 匯入登入": "Import login from {browser}",
     "正在讀取 {browser} 的登入資料…如果跳出鑰匙圈視窗，請按「允許」。": "Reading the {browser} login… if a keychain dialog appears, click \"Allow\".",
-    "不支援的瀏覽器。": "Unsupported browser."
+    "不支援的瀏覽器。": "Unsupported browser.",
+    "從瀏覽器匯入登入": "Import login from this browser",
+    "偵測到你正在使用 {browser}。": "You appear to be using {browser}.",
+    "不是這個瀏覽器？": "Not this browser?",
+    "無法判斷目前的瀏覽器，請選擇已登入 YouTube Music 的那一個：": "Could not tell which browser this is. Pick the one signed in to YouTube Music:"
   },
   "patterns": [
     [

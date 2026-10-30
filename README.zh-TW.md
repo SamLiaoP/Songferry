@@ -57,7 +57,7 @@ Songferry 使用非 Google 官方的開源 [ytmusicapi](https://github.com/sigma
 
 不需要 Google API 金鑰。按 YouTube Music 卡片的「**連接 YouTube Music**」，面板提供兩種方式：
 
-**從瀏覽器匯入（最簡單）。** Songferry 會偵測這台電腦上的 Brave、Chrome、Edge、Chromium 與 Firefox 設定檔。按「從 Brave 匯入登入」（或任何已登入 YouTube Music 的瀏覽器），它會直接從該瀏覽器的 Cookie 資料庫讀取 YouTube 的 Cookie，做法和 `yt-dlp --cookies-from-browser` 相同。macOS 會問一次是否允許存取該瀏覽器的鑰匙圈項目，按「**允許**」即可。整個過程不會把任何資料送出你的電腦。Windows 上 Chrome 127 以後的 Cookie 加密方式無法這樣讀取，請改用 Firefox 或手動方式。
+**從瀏覽器匯入（最簡單）。** Songferry 會偵測這台電腦上的 Brave、Chrome、Edge、Chromium 與 Firefox 設定檔。按「從瀏覽器匯入登入」，Songferry 會判斷頁面目前開在哪個瀏覽器，直接從它的 Cookie 資料庫讀取 YouTube 的 Cookie，做法和 `yt-dlp --cookies-from-browser` 相同。macOS 會問一次是否允許存取該瀏覽器的鑰匙圈項目，按「**允許**」即可。整個過程不會把任何資料送出你的電腦。Windows 上 Chrome 127 以後的 Cookie 加密方式無法這樣讀取，請改用 Firefox 或手動方式。
 
 **或者手動貼上一次請求：**
 

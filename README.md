@@ -57,7 +57,7 @@ Songferry uses the open-source, unofficial [ytmusicapi](https://github.com/sigma
 
 No Google API key is needed. Click **Connect YouTube Music** on the YouTube Music card. The panel offers two ways:
 
-**Import from your browser (easiest).** Songferry detects Brave, Chrome, Edge, Chromium and Firefox profiles on this computer. Click *Import login from Brave* (or whichever browser is signed in to YouTube Music) and it reads the YouTube cookies straight from that browser's cookie store, the same way `yt-dlp --cookies-from-browser` does. On macOS the system asks once whether to allow access to the browser's keychain entry; click **Allow**. Nothing leaves your machine. On Windows, Chrome 127 and later encrypt cookies in a way this cannot read; use Firefox or the manual method there.
+**Import from your browser (easiest).** Songferry detects Brave, Chrome, Edge, Chromium and Firefox profiles on this computer. Click *Import login from this browser*: Songferry works out which browser the page is open in and reads the YouTube cookies straight from that browser's cookie store, the same way `yt-dlp --cookies-from-browser` does. On macOS the system asks once whether to allow access to the browser's keychain entry; click **Allow**. Nothing leaves your machine. On Windows, Chrome 127 and later encrypt cookies in a way this cannot read; use Firefox or the manual method there.
 
 **Or paste one request manually:**
 
