@@ -4,7 +4,7 @@
 
 Songferry（原名 Playlist Bridge）是一個使用 Flask、原生 JavaScript 與 ytmusicapi 的個人本機應用程式，原始碼在 https://github.com/SamLiaoP/Songferry 。Python 3.10 以上可執行，建議 3.12。它支援 Spotify → YouTube Music 與 YouTube Music → Spotify，兩個方向都建立新的私人歌單。
 
-目前以單一使用者及單一 Python 伺服器程序為前提。Spotify 登入與比對紀錄都保存在 `.local/`，重啟後由 `restore()` 讀回。介面提供繁體中文與英文。
+目前以單一使用者及單一 Python 伺服器程序為前提。Spotify 登入與比對紀錄都保存在 `.local/`，重啟後由 `restore()` 讀回。介面提供繁體中文與英文，分成帳號、歌單轉移、連結加入歌單三個頁面（`/accounts`、`/transfer`、`/links`），由前端 `showView()` 切換，三個路徑都回傳同一份 `index.html`。比對確認區塊（`#review`）只有一份，依目前頁面移進對應的 `.review-slot`。
 
 ## 檔案結構
 
@@ -13,6 +13,7 @@ Songferry（原名 Playlist Bridge）是一個使用 Flask、原生 JavaScript �
 | `app.py` | Flask 路由、CSRF/Host 檢查、Spotify PKCE、工作管理、`.local` 持久化與轉移流程 |
 | `matching.py` | 文字正規化、歌名/歌手/長度評分、版本差異警示 |
 | `reverse.py` | YouTube 歌單解析、Spotify 搜尋、每批 100 首寫入與讀回核對 |
+| `links.py` | 從雜亂文字抓出歌曲連結、查詢資訊、跨平台比對、加入既有歌單並讀回、列出可寫入的歌單 |
 | `connect_youtube.py` | 登入標頭解析（cURL / fetch / 原始標頭）、帳號驗證、安全存檔；供 `/api/youtube/connect` 與 `.command` 共用 |
 | `index.html` / `style.css` / `app.js` | 介面、左側比對紀錄、方向切換、比對結果、人工調整、工作恢復與語言切換 |
 | `i18n/en.json` | 英文翻譯表：以繁中原文為 key，含 `{name}` 佔位與處理動態訊息的 regex patterns |
@@ -21,6 +22,7 @@ Songferry（原名 Playlist Bridge）是一個使用 Flask、原生 JavaScript �
 | `test_connect_youtube.py` | 登入資料解析、驗證失敗保留舊設定與檔案權限測試 |
 | `test_persistence.py` | Spotify 登入與比對紀錄的保存、重啟恢復、中斷標記、刪除與選擇同步測試 |
 | `test_i18n.py` | 翻譯表涵蓋所有介面字串與伺服器中文訊息、佔位符一致、翻譯檔路由 |
+| `test_links.py` | 連結抓取、歌名清理、連結比對、加入既有歌單去重與核對、歌單列表與路由 |
 | `啟動.command` | macOS 啟動；只在第一次建立 `.venv` 時安裝依賴 |
 | `連接YouTubeMusic.command` | macOS 剪貼簿匯入本機登入資料，完成後清空剪貼簿 |
 
@@ -68,7 +70,10 @@ Windows 可使用 `.venv\Scripts\python.exe` 取代 `.venv/bin/python`。`.comma
 | `DELETE /api/jobs/<id>` | 刪除一筆紀錄與其檔案；進行中的工作不能刪除 |
 | `POST /api/jobs/<id>/selections` | 接收 `selections`（可為前綴）與 `title`，保存使用者的選擇 |
 | `POST /api/search` | 接收 `job`、`index`、`query`，補充候選結果 |
-| `POST /api/create` | 接收 `job`、`title`、`selections`、`lang`，建立目標歌單；`lang` 只影響歌單描述文字 |
+| `POST /api/create` | 接收 `job`、`title`、`selections`、`lang`，建立目標歌單；連結工作選了既有歌單時改為加入並去重；`lang` 只影響歌單描述文字 |
+| `POST /api/links/parse` | 接收 `text`，回傳抓到的歌曲連結、略過的連結與數量 |
+| `GET /api/playlists/<target>` | 列出可加入的歌單：YouTube Music 媒體庫歌單（排除 LM），或自己擁有的 Spotify 歌單（需 modify-private 與 modify-public） |
+| `POST /api/links/jobs` | 接收 `text`、`target`、`playlist`（`{mode:'new',name}` 或 `{mode:'existing',id,name}`），建立 `kind='links'` 的比對工作 |
 
 方向值為 `spotify-to-youtube` 或 `youtube-to-spotify`。
 

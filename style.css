@@ -56,3 +56,27 @@ textarea:focus{outline:2px solid #7d9840;outline-offset:2px}
 .connect-or{font-size:12px;font-weight:600;margin:18px 0 0;padding-top:14px;border-top:1px solid var(--line)}
 #yt-import-buttons .secondary{padding:11px 16px}
 body.no-transition .layout,body.no-transition #history,body.no-transition .history-inner,body.no-transition #history-backdrop{transition:none}
+
+/* Three pages: accounts, transfer, links */
+.tabs{display:flex;gap:4px;margin-left:4px}
+.tabs a{padding:8px 12px;border-radius:8px;font-size:12px;font-weight:650;text-decoration:none;color:#5e685b;white-space:nowrap}
+.tabs a:hover{background:#eef0e4}
+.tabs a[aria-current="page"]{background:var(--ink);color:var(--green)}
+.view[hidden]{display:none}
+.view>.workspace{margin-top:28px}
+.view[data-view="accounts"]>.workspace{margin-top:0}
+.account-strip{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12px;color:var(--muted);margin:0 0 18px;padding:10px 14px;background:#f4f5ed;border-radius:8px}
+.account-strip b{font-weight:600;color:var(--ink)}
+.account-strip .ok{color:#347c4c}.account-strip .warn{color:#9a3e2d}
+.account-strip a{color:#5e685b;margin-left:auto;white-space:nowrap}
+.links-form{border-top:0;padding-top:0;margin-top:0}
+.links-form textarea{min-height:150px;margin-top:6px;font:12px ui-monospace,monospace}
+.links-target{display:grid;grid-template-columns:1fr 1.4fr 1.4fr;gap:14px;margin-top:14px}
+.links-target select{padding:12px 10px;font-size:13px;background:#f5f6ed}
+#links-unsupported{margin-top:6px;font-size:11px;color:var(--muted)}
+#links-unsupported ul{margin:6px 0 0;padding-left:18px;line-height:1.7;overflow-wrap:anywhere}
+.finish-label{font-size:12px;font-weight:600;margin:8px 0}
+.finish-name{font-size:14px;font-weight:650;margin:0 0 6px}
+.source-link{font-size:10px;color:#667257;text-decoration:underline;margin-top:5px;display:inline-block}
+@media(max-width:960px){.tag,.local{display:none}.tabs a{padding:8px 9px;font-size:11px}.links-target{grid-template-columns:1fr}}
+@media(max-width:720px){header{flex-wrap:wrap}.tabs{order:3;width:100%;margin:6px 0 0}}

@@ -136,7 +136,7 @@ class ReverseApiTests(unittest.TestCase):
                 result=self.post('login',{'direction':direction})
             scopes=parse_qs(urlparse(result.json['url']).query)['scope'][0].split()
             self.assertEqual('playlist-modify-private' in scopes,expected)
-            self.assertNotIn('playlist-modify-public',scopes)
+            self.assertEqual('playlist-modify-public' in scopes,expected,'adding to an owned playlist needs both modify scopes')
 
     def test_missing_write_permission_does_not_attempt_create(self):
         module.state['token']={'scope':'playlist-read-private'}

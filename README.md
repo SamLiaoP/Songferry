@@ -2,11 +2,11 @@
 
 **English** · [繁體中文](README.zh-TW.md)
 
-Songferry is a local tool that moves playlists between **Spotify** and **YouTube Music**, in both directions. It matches every song, lets you review and change each match, then creates a new private playlist and reads it back to verify. Only song metadata is transferred; no music is downloaded. The interface is available in English and Traditional Chinese.
+Songferry is a local tool that moves playlists between **Spotify** and **YouTube Music**, in both directions, and that turns a messy pile of song links (a whole chat log, say) into a playlist. It matches every song, lets you review and change each match, then creates or appends to a playlist and reads it back to verify. Only song metadata is transferred; no music is downloaded. The interface is available in English and Traditional Chinese and has three pages: **Accounts**, **Transfer** and **Links to playlist**.
 
 > Currently supports Spotify ⟷ YouTube Music only. Other services are not supported yet.
 
-![Songferry home page with the transfer history sidebar](docs/screenshots/home-en.jpg)
+![Songferry accounts page with the history sidebar](docs/screenshots/home-en.jpg)
 
 ## Why another playlist tool?
 
@@ -17,6 +17,7 @@ Plenty of tools copy playlists. Songferry is different in how it does it:
 - **Never duplicates.** If a write fails or the result is unclear, the job is locked and nothing is resent automatically.
 - **Runs only on your machine.** Bound to 127.0.0.1, no third-party service sees your playlists, and the Spotify login plus every transfer are stored under `.local/` so they survive restarts.
 - **History sidebar.** Every transfer is kept locally; reopen one any time to keep editing or to check what was created.
+- **Links to playlist.** Paste any text containing YouTube, YouTube Music or Spotify song links. The links are picked out, resolved, matched where they come from the other service, and added to a new or existing playlist after the same review.
 
 ![Reviewing matches song by song](docs/screenshots/review-en.jpg)
 
@@ -89,9 +90,15 @@ Everything under `.local/` (`browser.json`, `spotify_token.json`, `config.json`,
 
 Podcasts, local files and unreadable items are skipped. Regional availability, licensing and song versions can all affect matches; preview the songs that matter to you.
 
+## Links to playlist
+
+The third page takes any text and finds the song links in it: `youtube.com/watch`, `youtu.be`, `music.youtube.com/watch`, `youtube.com/shorts`, `open.spotify.com/track` and `spotify:track:` URIs. Everything else (playlists, channels, other sites) is listed as skipped. Choose the target service and either a new playlist or one of your own existing ones. Links that already live on the target service are added as they are; links from the other service are looked up and matched song by song, with the same review step as a transfer. When adding to an existing playlist, songs already in it are skipped and the result is read back to verify. Adding to an existing Spotify playlist needs the `playlist-modify-public` scope as well, because Spotify reports every playlist as public; connected accounts are asked to re-authorize once.
+
+![Links to playlist page](docs/screenshots/links-en.jpg)
+
 ## History
 
-Every transfer is saved as `.local/jobs/<id>.json` the moment it starts and updated while matching, when you change a selection or playlist name, and after creation. The sidebar lists them newest first; click one to reopen it. Interrupted jobs (server stopped mid-match) are marked and must be reloaded. Deleting an entry removes only the local record, never a created playlist.
+Every transfer and link import is saved as `.local/jobs/<id>.json` the moment it starts and updated while matching, when you change a selection or playlist name, and after creation. The sidebar lists them newest first; click one to reopen it. Interrupted jobs (server stopped mid-match) are marked and must be reloaded. Deleting an entry removes only the local record, never a created playlist.
 
 ## Errors and limits
 
@@ -105,7 +112,7 @@ Every transfer is saved as `.local/jobs/<id>.json` the moment it starts and upda
 ## Development and tests
 
 ```sh
-.venv/bin/python -m unittest -v test_app.py test_connect_youtube.py test_reverse.py test_persistence.py test_i18n.py
+.venv/bin/python -m unittest -v test_app.py test_connect_youtube.py test_reverse.py test_persistence.py test_i18n.py test_links.py
 ```
 
 The tests run offline against mocked services and never touch your real `.local/`. See [DEVELOPMENT.md](DEVELOPMENT.md) for the architecture, HTTP API and storage layout, and [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.

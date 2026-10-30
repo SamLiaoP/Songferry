@@ -2,11 +2,11 @@
 
 [English](README.md) · **繁體中文**
 
-Songferry 是一個在你電腦上執行的本機工具，可以把歌單在 **Spotify** 與 **YouTube Music** 之間雙向轉移。它會逐首比對、讓你確認與調整每一首的對應版本，再建立新的私人歌單並讀回核對。只轉移歌曲資訊，不下載音樂。介面提供繁體中文與英文。
+Songferry 是一個在你電腦上執行的本機工具，可以把歌單在 **Spotify** 與 **YouTube Music** 之間雙向轉移，也可以把一堆亂七八糟的歌曲連結（例如整段聊天紀錄）整理成歌單。它會逐首比對、讓你確認與調整每一首的對應版本，再建立或加入歌單並讀回核對。只轉移歌曲資訊，不下載音樂。介面提供繁體中文與英文，分成三個頁面：**帳號**、**歌單轉移**、**連結加入歌單**。
 
 > 目前只支援 Spotify ⟷ YouTube Music 互轉，尚不支援其他平台。
 
-![Songferry 首頁與左側比對紀錄](docs/screenshots/home-zh.jpg)
+![Songferry 帳號頁與左側比對紀錄](docs/screenshots/home-zh.jpg)
 
 ## 為什麼還要再做一個歌單轉移工具？
 
@@ -17,6 +17,7 @@ Songferry 是一個在你電腦上執行的本機工具，可以把歌單在 **S
 - **絕不重複加歌。** 寫入失敗或結果不明時，該工作會被鎖住，不會自動重送。
 - **只在你的電腦上跑。** 只監聽 127.0.0.1，沒有第三方服務看得到你的歌單；Spotify 登入與每一次比對都存在 `.local/`，重啟後還在。
 - **左側比對紀錄。** 每次轉移都保存在本機，隨時點回去繼續調整或查看建立結果。
+- **連結加入歌單。** 貼上任何含有 YouTube、YouTube Music 或 Spotify 歌曲連結的文字，連結會自動抓出來、讀取資訊、跨平台的逐首比對，再經同一套確認流程加進新的或既有的歌單。
 
 ![逐首確認對應版本](docs/screenshots/review-zh.jpg)
 
@@ -87,9 +88,15 @@ chmod 600 .local/browser.json
 
 Podcast、本機音檔與無法讀取的項目會略過。地區、版權與歌曲版本都可能影響比對結果，重要的歌建議先試聽。
 
+## 連結加入歌單
+
+第三頁接受任何文字，從中找出歌曲連結：`youtube.com/watch`、`youtu.be`、`music.youtube.com/watch`、`youtube.com/shorts`、`open.spotify.com/track` 以及 `spotify:track:` URI。其他連結（歌單、頻道、其他網站）會列為略過。選擇目標平台，再選「建立新歌單」或你自己既有的歌單。已經在目標平台上的連結直接加入；來自另一個平台的連結會查詢資訊後逐首比對，確認步驟和歌單轉移完全相同。加入既有歌單時，原本就在裡面的歌會跳過，加入後讀回核對。加入既有的 Spotify 歌單另外需要 `playlist-modify-public` 權限，因為 Spotify 現在把所有歌單都回報為公開；已連接的帳號會被要求重新授權一次。
+
+![連結加入歌單頁](docs/screenshots/links-zh.jpg)
+
 ## 比對紀錄
 
-每次轉移在開始的那一刻就寫入 `.local/jobs/<id>.json`，比對中、改選版本或歌單名稱、建立之後都會更新。左側列表由新到舊，點一下就能重新打開。伺服器在比對中被關閉的工作會標記為「已中斷」，需重新讀取。刪除紀錄只刪本機資料，不會動已建立的歌單。
+每次轉移與連結匯入在開始的那一刻就寫入 `.local/jobs/<id>.json`，比對中、改選版本或歌單名稱、建立之後都會更新。左側列表由新到舊，點一下就能重新打開。伺服器在比對中被關閉的工作會標記為「已中斷」，需重新讀取。刪除紀錄只刪本機資料，不會動已建立的歌單。
 
 ## 錯誤與限制
 
@@ -103,7 +110,7 @@ Podcast、本機音檔與無法讀取的項目會略過。地區、版權與歌�
 ## 開發與測試
 
 ```sh
-.venv/bin/python -m unittest -v test_app.py test_connect_youtube.py test_reverse.py test_persistence.py test_i18n.py
+.venv/bin/python -m unittest -v test_app.py test_connect_youtube.py test_reverse.py test_persistence.py test_i18n.py test_links.py
 ```
 
 測試以模擬服務離線執行，不會碰到你真實的 `.local/`。架構、HTTP API 與儲存方式見 [DEVELOPMENT.md](DEVELOPMENT.md)，送 PR 前請看 [CONTRIBUTING.md](CONTRIBUTING.md)。

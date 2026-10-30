@@ -164,7 +164,7 @@ class SpotifyLoginTests(unittest.TestCase):
         with patch.object(module, 'config', return_value={'client_id':'a'*32}), patch.object(module.requests, 'post', return_value=fake) as exchange:
             response = self.client.get('/callback?state=correct&code=code', base_url=module.BASE)
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.location, '/')
+        self.assertEqual(response.location, '/accounts')
         self.assertEqual(module.state['token']['access_token'], 'test-token')
         self.assertFalse(module.state['oauth'])
         self.assertEqual(exchange.call_args.kwargs['data']['code_verifier'], 'verifier')

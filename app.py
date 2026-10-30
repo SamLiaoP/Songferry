@@ -13,6 +13,8 @@ from urllib.parse import urlencode, urlparse
 import requests
 from flask import Flask, jsonify, redirect, request, send_file
 from connect_youtube import available_browsers, connect as connect_youtube_account, import_from_browser
+from links import (TARGETS, add_to_spotify_playlist, add_to_youtube_playlist, extract_links, run_links_match,
+                   spotify_playlists, youtube_playlists)
 from matching import rank
 from reverse import (FORWARD, REVERSE, candidate_id, youtube_playlist_id, youtube_tracks,
                      search_spotify, create_spotify)
@@ -106,7 +108,9 @@ def summary(job):
             'status': job.get('status'), 'created_at': job.get('created_at'), 'total': job.get('total', 0),
             'rows': len(job.get('rows', [])), 'selected': sum(1 for r in job.get('rows', []) if r.get('selected')),
             'attempted': bool(job.get('attempted')), 'error': job.get('error'),
-            'url': result.get('url') or job.get('destination_url')}
+            'url': result.get('url') or job.get('destination_url'),
+            'kind': job.get('kind', 'transfer'), 'target': job.get('target'),
+            'playlist': (job.get('playlist') or {}).get('name')}
 
 
 def yt(auth=False):
@@ -247,6 +251,11 @@ def spotify_can_write():
     return 'playlist-modify-private' in (state['token'] or {}).get('scope', '').split()
 
 
+def spotify_can_modify_playlists():
+    scopes = (state['token'] or {}).get('scope', '').split()
+    return 'playlist-modify-private' in scopes and 'playlist-modify-public' in scopes
+
+
 @app.before_request
 def protect():
     if request.host != f'127.0.0.1:{PORT}':
@@ -278,6 +287,9 @@ def unexpected(exc):
 
 
 @app.get('/')
+@app.get('/accounts')
+@app.get('/transfer')
+@app.get('/links')
 def index():
     return send_file(ROOT / 'index.html')
 
@@ -310,7 +322,7 @@ def status():
     return jsonify(csrf=csrf, spotify=bool(state['token']), client_id=config().get('client_id', ''),
                    youtube=(LOCAL / 'browser.json').exists(), redirect=REDIRECT,
                    youtube_account=(read_json(LOCAL / 'youtube_account.json') or {}).get('accountName', ''),
-                   spotify_can_write=spotify_can_write())
+                   spotify_can_write=spotify_can_write(), spotify_can_modify=spotify_can_modify_playlists())
 
 
 @app.post('/api/config')
@@ -374,7 +386,8 @@ def login():
         raise ValueError('無效的轉換方向。')
     scope = 'playlist-read-private playlist-read-collaborative'
     if direction == REVERSE:
-        scope += ' playlist-modify-private'
+        # Spotify now reports every playlist as public, so adding to one you own needs both modify scopes.
+        scope += ' playlist-modify-private playlist-modify-public'
     verifier = secrets.token_urlsafe(64)
     nonce = secrets.token_urlsafe(32)
     state['oauth'] = {'state': nonce, 'verifier': verifier, 'time': time.time(), 'direction': direction}
@@ -392,7 +405,7 @@ def callback():
         raise ValueError('登入要求已失效，請回首頁重新連接。')
     state['oauth'] = {}
     if request.args.get('error') or not request.args.get('code'):
-        return redirect('/?' + urlencode({'login': 'cancelled', 'direction': pending.get('direction', FORWARD)}))
+        return redirect('/accounts?' + urlencode({'login': 'cancelled', 'direction': pending.get('direction', FORWARD)}))
     response = requests.post('https://accounts.spotify.com/api/token', data={
         'client_id': config()['client_id'], 'grant_type': 'authorization_code', 'code': request.args['code'],
         'redirect_uri': REDIRECT, 'code_verifier': pending['verifier']}, timeout=30)
@@ -403,8 +416,8 @@ def callback():
     state['token'] = token
     save_token(token)
     if pending.get('direction') == REVERSE:
-        return redirect('/?direction=' + REVERSE)
-    return redirect('/')
+        return redirect('/transfer?direction=' + REVERSE)
+    return redirect('/accounts')
 
 
 @app.post('/api/jobs')
@@ -426,6 +439,80 @@ def start_job():
         state['jobs'][jid] = job
     save_job(job)
     threading.Thread(target=run_match, args=(job, pid), daemon=True).start()
+    return jsonify(id=jid)
+
+
+@app.post('/api/links/parse')
+def links_parse():
+    text = (request.json or {}).get('text', '')
+    if not isinstance(text, str):
+        raise ValueError('請貼上文字。')
+    items, unsupported = extract_links(text[:2_000_000])
+    return jsonify(items=items, unsupported=unsupported,
+                   counts={'youtube': sum(i['platform'] == 'youtube' for i in items),
+                           'spotify': sum(i['platform'] == 'spotify' for i in items)})
+
+
+@app.get('/api/playlists/<target>')
+def playlists(target):
+    if target not in TARGETS:
+        raise ValueError('無效的目標平台。')
+    if target == 'youtube':
+        return jsonify(playlists=youtube_playlists(yt(auth=True)))
+    if not spotify_can_modify_playlists():
+        raise ValueError('請重新授權 Spotify，才能把歌曲加進既有歌單。')
+    return jsonify(playlists=spotify_playlists(spotify))
+
+
+@app.post('/api/links/jobs')
+def start_links_job():
+    data = request.json or {}
+    target = data.get('target')
+    if target not in TARGETS:
+        raise ValueError('無效的目標平台。')
+    text = data.get('text', '')
+    if not isinstance(text, str):
+        raise ValueError('請貼上文字。')
+    items, _ = extract_links(text[:2_000_000])
+    if not items:
+        raise ValueError('沒有找到 YouTube、YouTube Music 或 Spotify 的歌曲連結。')
+    playlist = data.get('playlist') or {}
+    mode = playlist.get('mode', 'new')
+    if mode not in ('new', 'existing'):
+        raise ValueError('無效的歌單選項。')
+    chosen = None
+    if mode == 'existing':
+        pid, name = str(playlist.get('id', '')), str(playlist.get('name', ''))[:150]
+        valid = re.fullmatch(r'[A-Za-z0-9]{22}', pid) if target == 'spotify' else re.fullmatch(r'[A-Za-z0-9_-]{2,200}', pid)
+        if not valid:
+            raise ValueError('無效的歌單 ID。')
+        chosen = {'mode': 'existing', 'id': pid, 'name': name}
+    else:
+        chosen = {'mode': 'new', 'name': str(playlist.get('name', '')).strip()[:150]}
+    if target == 'spotify' or any(i['platform'] == 'spotify' for i in items):
+        if not state['token']:
+            raise ValueError('請先連接 Spotify。')
+    with lock:
+        if any(j['status'] == 'matching' for j in state['jobs'].values()):
+            raise ValueError('已有歌單正在比對，請等待完成。')
+        jid = secrets.token_urlsafe(16)
+        job = {'id': jid, 'kind': 'links', 'status': 'matching', 'title': chosen.get('name') or '', 'rows': [], 'total': len(items),
+               'error': None, 'result': None, 'creating': False, 'attempted': False,
+               'direction': FORWARD if target == 'youtube' else REVERSE, 'target': target, 'playlist': chosen,
+               'created_at': time.time(), 'source_url': '', 'target_title': chosen.get('name') or '',
+               'links': len(items)}
+        state['jobs'][jid] = job
+    save_job(job)
+
+    def run():
+        try:
+            run_links_match(job, items, yt, spotify, lock, save_job, lambda: time.sleep(.15))
+        except Exception as exc:
+            job['status'] = 'error'
+            job['error'] = str(exc) if isinstance(exc, ValueError) else '服務連線失敗，請檢查網路與帳號設定後重試。'
+        finally:
+            save_job(job)
+    threading.Thread(target=run, daemon=True).start()
     return jsonify(id=jid)
 
 
@@ -530,8 +617,10 @@ def create():
                 ids.append(selected)
         if not ids:
             raise ValueError('請至少選擇一首歌曲。')
+        existing = (job.get('playlist') or {}) if job.get('kind') == 'links' else {}
+        existing = existing if existing.get('mode') == 'existing' else None
         title = data.get('title', '').strip()[:150]
-        if not title:
+        if not title and not existing:
             raise ValueError('請輸入目標歌單名稱。')
         english = data.get('lang') == 'en'
         is_reverse = job.get('direction') == REVERSE
@@ -548,6 +637,12 @@ def create():
         job['attempted'] = True
     save_job(job)
     try:
+        if existing:
+            if is_reverse:
+                job['result'] = add_to_spotify_playlist(spotify, job, existing['id'], ids)
+            else:
+                job['result'] = add_to_youtube_playlist(client, existing['id'], ids)
+            return jsonify(job['result'])
         if is_reverse:
             job['result'] = create_spotify(spotify, job, title, ids,
                                            'Transferred from YouTube Music by Songferry.' if english else None)

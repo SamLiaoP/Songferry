@@ -67,6 +67,33 @@ def search_spotify(spotify, track, query):
     return candidates
 
 
+def append_spotify_batches(spotify, pid, ids):
+    """Add up to 100 tracks per request. Returns (written, failed); never retries a possibly accepted write."""
+    written = 0
+    for start in range(0, len(ids), 100):
+        try:
+            batch = ids[start:start + 100]
+            result = spotify(f'playlists/{pid}/items', method='POST',
+                             payload={'uris': ['spotify:track:' + tid for tid in batch]})
+            if not result.get('snapshot_id'):
+                raise ValueError('Spotify 沒有確認新增結果。')
+            written += len(batch)
+        except Exception:
+            return written, True
+    return written, False
+
+
+def read_spotify_ids(spotify, pid):
+    ids = []
+    page = spotify(f'playlists/{pid}/items?limit=50')
+    while True:
+        ids.extend((entry.get('item') or entry.get('track') or {}).get('id') for entry in page.get('items', []))
+        if not page.get('next'):
+            break
+        page = spotify(page['next'])
+    return ids
+
+
 def create_spotify(spotify, job, title, ids, description=None):
     if any(not re.fullmatch(r'[A-Za-z0-9]{22}', tid) for tid in ids):
         raise ValueError('Spotify 歌曲 ID 格式不正確。')
@@ -77,28 +104,10 @@ def create_spotify(spotify, job, title, ids, description=None):
         raise ValueError('Spotify 未回傳有效歌單 ID，請先到 Spotify 檢查建立結果。')
     url = 'https://open.spotify.com/playlist/' + pid
     job['destination_url'] = url
-    written = 0
-    write_failed = False
-    for start in range(0, len(ids), 100):
-        try:
-            batch = ids[start:start + 100]
-            result = spotify(f'playlists/{pid}/items', method='POST',
-                             payload={'uris': ['spotify:track:' + tid for tid in batch]})
-            if not result.get('snapshot_id'):
-                raise ValueError('Spotify 沒有確認新增結果。')
-            written += len(batch)
-        except Exception:
-            write_failed = True
-            break  # Never retry a potentially accepted write, which could duplicate songs.
+    written, write_failed = append_spotify_batches(spotify, pid, ids)
     actual = None
     try:
-        actual = []
-        page = spotify(f'playlists/{pid}/items?limit=50')
-        while True:
-            actual.extend((entry.get('item') or entry.get('track') or {}).get('id') for entry in page.get('items', []))
-            if not page.get('next'):
-                break
-            page = spotify(page['next'])
+        actual = read_spotify_ids(spotify, pid)
     except Exception:
         actual = None
     verified = actual == ids
