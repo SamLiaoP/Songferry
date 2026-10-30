@@ -107,6 +107,10 @@ Every transfer is saved as `.local/jobs/<id>.json` the moment it starts and upda
 
 The tests run offline against mocked services and never touch your real `.local/`. See [DEVELOPMENT.md](DEVELOPMENT.md) for the architecture, HTTP API and storage layout, and [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 
+## License
+
+[MIT](LICENSE). Dependencies keep their own licenses.
+
 ## Security notes
 
 Songferry binds to 127.0.0.1 only, checks the Host header, requires a per-session CSRF token on every state-changing request, serves a strict Content-Security-Policy, and never uses `innerHTML`. Credentials are stored with mode 0600 inside a 0700 directory and are never printed or logged. Spotify's token is stored in plain JSON on disk; keep the project folder private.

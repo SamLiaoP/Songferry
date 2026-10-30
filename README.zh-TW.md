@@ -105,6 +105,10 @@ Podcast、本機音檔與無法讀取的項目會略過。地區、版權與歌�
 
 測試以模擬服務離線執行，不會碰到你真實的 `.local/`。架構、HTTP API 與儲存方式見 [DEVELOPMENT.md](DEVELOPMENT.md)，送 PR 前請看 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
+## 授權
+
+[MIT](LICENSE)。依賴套件保留其各自的授權。
+
 ## 安全說明
 
 Songferry 只綁定 127.0.0.1、檢查 Host 標頭、所有會改變狀態的請求都要求本次啟動專屬的 CSRF token、使用嚴格的 Content-Security-Policy，前端不使用 `innerHTML`。登入資料以 0600 權限存在 0700 的資料夾內，不會被印出或寫入 log。Spotify token 以明文 JSON 存在磁碟上，請保持專案資料夾私密。
