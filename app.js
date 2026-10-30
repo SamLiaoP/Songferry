@@ -30,7 +30,7 @@ function applyLanguage() {
     }
   }
   $('lang-toggle').textContent = lang === 'en' ? '中文' : 'EN';
-  $('history-toggle').setAttribute('aria-label', t(document.body.classList.contains('history-open') ? '收起比對紀錄' : '開啟比對紀錄'));
+  $('history-toggle').setAttribute('aria-label', t(document.body.classList.contains('sidebar-open') ? '收起比對紀錄' : '開啟比對紀錄'));
   $('history-toggle').title = t('比對紀錄');
   $('lang-toggle').setAttribute('aria-label', lang === 'en' ? '切換成中文' : 'Switch to English');
 }
@@ -350,13 +350,13 @@ $('new-job').onclick=()=>{if(creating||job?.status==='matching'){notice('目前�
 // --- Sidebar open/close: inline column on wide screens, overlay drawer on narrow ones; choice remembered.
 function isNarrow(){return matchMedia('(max-width:960px)').matches;}
 function setHistoryOpen(open){
-  document.body.classList.toggle('history-open',open);
+  document.body.classList.toggle('sidebar-open',open);
   $('history-toggle').setAttribute('aria-expanded',String(open));
   $('history-toggle').setAttribute('aria-label',t(open?'收起比對紀錄':'開啟比對紀錄'));
-  $('history-backdrop').hidden=!open;
+  $('history-backdrop').hidden=!(open&&isNarrow());
   try{localStorage.setItem('songferry.history',open?'open':'closed');}catch(_){}
 }
-function historyOpen(){return document.body.classList.contains('history-open');}
+function historyOpen(){return document.body.classList.contains('sidebar-open');}
 $('history-toggle').onclick=()=>setHistoryOpen(!historyOpen());
 $('history-collapse').onclick=()=>{setHistoryOpen(false);$('history-toggle').focus();};
 $('history-backdrop').onclick=()=>setHistoryOpen(false);
